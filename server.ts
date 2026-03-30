@@ -3,16 +3,25 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { runDiscovery } from "./src/server/discovery";
 import { supabase } from "./src/server/supabase";
+import { PROVIDERS } from "./src/server/pipeline/config/providers";
+import { CENTRAL_CITY_ALLOWLIST } from "./src/server/pipeline/config/centralZones";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
 
-  // API routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  app.get('/api/providers', (req, res) => {
+    res.json({ providers: PROVIDERS });
+  });
+
+  app.get('/api/cities/central-zones', (req, res) => {
+    res.json({ allowlist: CENTRAL_CITY_ALLOWLIST });
   });
 
   app.post("/api/run", async (req, res) => {
@@ -24,10 +33,37 @@ async function startServer() {
     }
   });
 
+  app.post('/api/import', async (req, res) => {
+    try {
+      const result = await runDiscovery(req.body);
+      res.json({
+        message: 'Import processed through unified source pipeline.',
+        importExportReport: result.importExportReport,
+        records: result.records,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/export', async (req, res) => {
+    try {
+      const { format = 'json', records = [] } = req.body;
+      res.json({
+        format,
+        exported_count: records.length,
+        exported_at: new Date().toISOString(),
+        data: records,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/businesses", async (req, res) => {
     try {
       const { city, category, source, page = 1, pageSize = 20 } = req.query;
-      
+
       let query = supabase
         .from('businesses')
         .select('*', { count: 'exact' });
@@ -56,7 +92,6 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

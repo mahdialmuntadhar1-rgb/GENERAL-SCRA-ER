@@ -1,42 +1,93 @@
-# Supabase Schema for Iraq Business Discovery
+# Iraq City-Center Business Acquisition & Verification Pipeline
 
-Run this SQL in your Supabase SQL Editor to set up the database.
+This project now implements a **modular source-selector architecture** for city-center business discovery in Iraq, with strict quality and central-zone controls.
 
-```sql
--- Create the businesses table
-CREATE TABLE businesses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  local_name TEXT,
-  category TEXT NOT NULL,
-  city TEXT NOT NULL,
-  governorate TEXT,
-  address TEXT,
-  phone TEXT,
-  website TEXT,
-  facebook_url TEXT,
-  instagram_url TEXT,
-  source TEXT NOT NULL,
-  source_url TEXT,
-  confidence_score FLOAT DEFAULT 0.0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+## Implemented Deliverables
 
--- Add indexes for common filters
-CREATE INDEX idx_businesses_city ON businesses(city);
-CREATE INDEX idx_businesses_category ON businesses(category);
-CREATE INDEX idx_businesses_source ON businesses(source);
+- Provider-based connector architecture with a shared interface:
+  - `searchBusinesses(input)`
+  - `enrichBusiness(record)`
+  - `validateRecord(record)`
+  - `mapToCanonicalSchema(record)`
+- Source selector UI with provider checkboxes, select-all, toggles, city/category/subcategory/district selectors, priority mode, execution mode, limits, duplicate tolerance, verification strictness.
+- Canonical business schema with quality/verification/duplicate/suburb risk scoring.
+- Execution modes: sequence/parallel + stop threshold + fallback search behavior.
+- Free-tier-first strategy and provider metadata.
+- Central-city enforcement via per-city central-zone allowlist.
+- Validation and enrichment utilities:
+  - phone normalization
+  - URL/social validation
+  - address/city/district normalization
+  - junk placeholder detection
+- Merge logic with duplicate keying, field confidence, and evidence aggregation.
+- Import/export service hooks for CSV/XLSX/JSON payloads.
+- QC workflow statuses:
+  - Pending Review
+  - Needs Cleaning
+  - Needs Verification
+  - Verified
+  - Rejected
+  - Export Ready
+  - Outside Central Coverage
+- API endpoints:
+  - `GET /api/providers`
+  - `GET /api/cities/central-zones`
+  - `POST /api/run`
+  - `POST /api/import`
+  - `POST /api/export`
 
--- Add a unique constraint for basic deduplication
--- Note: This is a strict constraint. In production, you might prefer 
--- application-level logic or a more flexible index.
--- ALTER TABLE businesses ADD CONSTRAINT unique_business UNIQUE (name, phone, city);
+## Canonical Schema
+
+See `src/types.ts` (`CanonicalBusinessRecord`) for the full schema fields, including:
+- identity & location
+- contact & social
+- source attribution
+- quality/verification scoring
+- QC status and notes
+
+## Provider Configuration
+
+See `src/server/pipeline/config/providers.ts` for metadata and capabilities of:
+- Geoapify
+- Foursquare
+- HERE
+- TomTom
+- OSM/Nominatim
+- SerpApi
+- Outscraper
+- Apify
+- CSV upload
+- XLSX upload
+- JSON upload
+
+## Central City Enforcement
+
+See `src/server/pipeline/config/centralZones.ts`.
+Records outside central allowlist zones are flagged as **Outside Central Coverage**, blocked from auto-publish, and require manual review.
+
+## TODO: API Keys & Provider Setup
+
+1. Configure environment variables and secrets for each provider client:
+   - `GEOAPIFY_API_KEY`
+   - `FOURSQUARE_API_KEY`
+   - `HERE_API_KEY`
+   - `TOMTOM_API_KEY`
+   - `SERPAPI_API_KEY`
+   - `OUTSCRAPER_API_KEY`
+   - `APIFY_API_TOKEN`
+2. Replace mock connector implementation in `GenericProviderConnector.searchBusinesses` with real provider SDK/API calls.
+3. Add source-specific rate limiting and retry policies.
+4. Add persistent QC/audit tables in Supabase for:
+   - field-level attribution
+   - merge history
+   - review queue transitions
+   - import/export job history
+5. Add real CSV/XLSX parsing on backend for file uploads (multipart ingestion).
+6. Add XLSX/CSV export generation and downloadable files.
+
+## Local Run
+
+```bash
+npm install
+npm run dev
 ```
-
-## Setup Instructions
-
-1. Create a new Supabase project.
-2. Run the SQL above in the SQL Editor.
-3. Copy your `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to your secrets/env.
-4. Add `GEMINI_API_KEY` to your secrets.
-5. Run `npm run dev` to start the app.
