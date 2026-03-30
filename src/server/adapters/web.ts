@@ -1,25 +1,26 @@
-import { BusinessRecord } from '../../types';
-import { DiscoveryAdapter } from './base';
+import { Business } from "../../types";
+import { DiscoveryAdapter } from "./base";
 
 export class WebDirectoryAdapter implements DiscoveryAdapter {
   id = 'web_directory' as const;
   name = 'Web Directory (Mock)';
 
-  async discover(city: string, category: string): Promise<Partial<BusinessRecord>[]> {
-    console.log(`Mocking city-center web directory discovery for ${category} in ${city}`);
-
+  async discover(city: string, category: string): Promise<Partial<Business>[]> {
+    // In a real app, this would use a library like puppeteer or cheerio
+    // For v1, we simulate discovery of a few items to show the structure works
+    console.log(`Mocking web directory discovery for ${category} in ${city}`);
+    
     return [
       {
-        business_name: `${category} Center ${city}`,
-        normalized_business_name: `${category} center ${city}`.toLowerCase(),
+        name: `${category} Center ${city}`,
+        local_name: `مركز ${category} في ${city}`,
         category,
         city,
-        district: 'City Center',
-        address_text: `Central District, ${city}`,
-        phone_primary: '+964 770 000 0000',
-        source_name: 'Mock Iraq Directory',
+        address: `Main St, ${city}`,
+        phone: "+964 000 000 000",
+        source: 'web_directory',
         source_url: 'https://example-iraq-directory.com',
-        source_type: 'web_directory'
+        confidence_score: 0.6
       }
     ];
   }
