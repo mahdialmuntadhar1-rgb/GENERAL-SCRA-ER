@@ -19,7 +19,8 @@ import {
   Instagram,
   Send,
   CheckSquare,
-  Square as SquareIcon
+  Check,
+  DollarSign
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { IRAQ_CITIES, CATEGORIES, DISCOVERY_SOURCES } from '../constants';
@@ -153,26 +154,9 @@ export function JobSetup() {
             {isRunning ? 'Collection in progress...' : 'Configure collection parameters'}
           </p>
         </div>
-        <button 
-          onClick={toggleJob}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 ${
-            isRunning 
-              ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 shadow-red-600/5' 
-              : 'bg-orange-600 text-white hover:bg-orange-500 shadow-orange-600/20'
-          }`}
-        >
-          {isRunning ? (
-            <>
-              <Square className="w-4 h-4 fill-red-600" />
-              Stop Collection
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-white" />
-              Start Collection
-            </>
-          )}
-        </button>
+        <div className="text-[11px] text-zinc-500 font-semibold">
+          Select data sources below, then start the job.
+        </div>
       </div>
 
       {isRunning && (
@@ -346,10 +330,11 @@ export function JobSetup() {
               <Globe className="w-4 h-4" />
               <h3 className="text-[10px] font-bold uppercase tracking-widest">Data Sources</h3>
             </div>
-            <button 
+            <button
               onClick={handleSelectAllSources}
-              className="text-[10px] font-bold text-orange-600 uppercase tracking-widest hover:text-orange-700 transition-colors"
+              className="inline-flex items-center gap-1.5 text-[10px] font-bold text-orange-600 uppercase tracking-widest hover:text-orange-700 transition-colors"
             >
+              <Check className="w-3 h-3" />
               {selectedSources.length === DISCOVERY_SOURCES.length ? 'Deselect All' : 'Select All'}
             </button>
           </div>
@@ -382,17 +367,19 @@ export function JobSetup() {
                           {source.label}
                         </span>
                       </div>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 flex-wrap justify-end">
                         {source.tags.map(tag => (
                           <span 
                             key={tag} 
-                            className={`text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md ${
+                            className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md ${
                               tag === 'Paid' ? 'bg-red-100 text-red-700' :
                               tag === 'Free' ? 'bg-emerald-100 text-emerald-700' :
+                              tag === 'Open Source' ? 'bg-emerald-50 text-emerald-700' :
                               tag === 'Verification' ? 'bg-blue-100 text-blue-700' :
                               'bg-zinc-100 text-zinc-600'
                             }`}
                           >
+                            {tag === 'Paid' && <DollarSign className="w-2.5 h-2.5" />}
                             {tag}
                           </span>
                         ))}
@@ -452,6 +439,29 @@ export function JobSetup() {
             ))}
           </div>
         </section>
+      </div>
+
+      <div className="p-4 border-t border-zinc-100 bg-zinc-50">
+        <button
+          onClick={toggleJob}
+          className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 ${
+            isRunning
+              ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 shadow-red-600/5'
+              : 'bg-orange-600 text-white hover:bg-orange-500 shadow-orange-600/20'
+          }`}
+        >
+          {isRunning ? (
+            <>
+              <Square className="w-4 h-4 fill-red-600" />
+              Stop Collection
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 fill-white" />
+              Start Collection
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

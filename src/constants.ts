@@ -56,7 +56,7 @@ export const SOURCES: Source[] = [
 export const DISCOVERY_SOURCES: DiscoverySourceConfig[] = [
   {
     id: 'osm',
-    label: 'OpenStreetMap / Overpass',
+    label: 'OpenStreetMap / Overpass (free / open source)',
     description: 'Free business discovery, map-based search, and local place coverage.',
     hint: 'Best free open-source source for Iraq discovery.',
     tags: ['Free', 'Open Source', 'Discovery'],
@@ -65,16 +65,16 @@ export const DISCOVERY_SOURCES: DiscoverySourceConfig[] = [
   },
   {
     id: 'overture',
-    label: 'Overture Maps',
+    label: 'Overture Maps (open data / large-scale)',
     description: 'Large-scale base dataset, place discovery, and confidence-based matching.',
     hint: 'Best for large-scale base place dataset.',
-    tags: ['Open Data', 'Large-scale', 'Discovery'],
+    tags: ['Open Source', 'Discovery', 'Large-scale'],
     icon: 'Layers',
     defaultChecked: true
   },
   {
     id: 'foursquare',
-    label: 'Foursquare',
+    label: 'Foursquare (paid / enrichment / claimed verification)',
     description: 'Search, business matching, phone enrichment, and claimed verification.',
     hint: 'Recommended for phone / website / social enrichment and claimed verification. Uses paid credits.',
     tags: ['Paid', 'Enrichment', 'Verification'],
@@ -83,7 +83,7 @@ export const DISCOVERY_SOURCES: DiscoverySourceConfig[] = [
   },
   {
     id: 'web_directory',
-    label: 'Web Directories',
+    label: 'Web Directories (custom scraping)',
     description: 'Targeted scraping of public business listing websites.',
     tags: ['Custom Scraping', 'Discovery'],
     icon: 'Globe',
@@ -91,9 +91,9 @@ export const DISCOVERY_SOURCES: DiscoverySourceConfig[] = [
   },
   {
     id: 'gemini',
-    label: 'Gemini AI Search',
+    label: 'Gemini AI Search (AI-assisted enrichment)',
     description: 'Extracting or inferring business details from public web content.',
-    tags: ['AI-assisted', 'Enrichment'],
+    tags: ['Enrichment', 'AI-assisted'],
     icon: 'Sparkles',
     defaultChecked: false
   },

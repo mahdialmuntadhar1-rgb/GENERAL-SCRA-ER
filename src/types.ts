@@ -107,6 +107,8 @@ export interface DiscoveryResult {
       found: number;
       inserted: number;
       skipped: number;
+      status: 'pending' | 'running' | 'completed' | 'skipped' | 'failed';
+      skipReason?: string;
       error?: string;
     }
   };
