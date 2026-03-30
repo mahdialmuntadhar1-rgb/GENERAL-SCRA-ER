@@ -105,6 +105,8 @@ export async function runDiscovery(req: DiscoveryRequest): Promise<DiscoveryResu
     insertedCount++;
   }
 
+  const importExportReport = generateImportExportReport(records, selectedProviders);
+
   return {
     summary: `City-first discovery completed for ${category} in ${city}.`,
     insertedCount,

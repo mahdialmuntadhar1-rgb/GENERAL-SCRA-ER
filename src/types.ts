@@ -69,6 +69,27 @@ export interface DiscoveryResult {
   rejectedCount: number;
   needsManualReviewCount: number;
   errors: string[];
+  records: CanonicalBusinessRecord[];
+  importExportReport: ImportReport;
+}
+
+// Legacy compatibility for current UI table rendering
+export interface Business {
+  id?: string;
+  name: string;
+  local_name?: string;
+  category: string;
+  city: string;
+  governorate?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  source: string;
+  source_url?: string;
+  confidence_score: number;
+  created_at?: string;
 }
 
 export interface ImportSummary {

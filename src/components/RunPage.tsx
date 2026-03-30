@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Play, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { DiscoverySource, DiscoveryResult } from '../types';
+import { DiscoveryResult, ProviderConfig, SourceSelectorOptions } from '../types';
 
 const CITIES = ['Baghdad', 'Erbil', 'Basra', 'Mosul', 'Sulaymaniyah', 'Najaf', 'Karbala'];
 const CATEGORIES = ['Restaurant', 'Hotel', 'Cafe', 'Pharmacy', 'Supermarket', 'Tech Company', 'Gym'];
@@ -26,7 +26,7 @@ export function RunPage() {
   };
 
   const handleRun = async () => {
-    if (selectedSources.length === 0) {
+    if (options.selectedProviderIds.length === 0) {
       setError('Please select at least one source.');
       return;
     }
@@ -53,8 +53,10 @@ export function RunPage() {
     }
   };
 
+  const toggle = (key: keyof SourceSelectorOptions) => setOptions(prev => ({ ...prev, [key]: !prev[key] }));
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <div className="bg-white border border-zinc-200 rounded-2xl p-8 shadow-sm">
         <h1 className="text-2xl font-bold mb-2">New City-Center Discovery Run</h1>
         <p className="text-sm text-zinc-500 mb-6">Only central-city businesses should be discoverable.</p>
@@ -130,19 +132,11 @@ export function RunPage() {
           </button>
         </div>
 
-        {error && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-900">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
+        {error && <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-900"><AlertCircle className="w-5 h-5 shrink-0 mt-0.5" /><p className="text-sm">{error}</p></div>}
 
         {result && (
           <div className="mt-6 p-6 bg-zinc-900 text-white rounded-2xl">
-            <div className="flex items-center gap-2 mb-4 text-orange-400">
-              <CheckCircle2 className="w-5 h-5" />
-              <h3 className="font-bold">Run Summary</h3>
-            </div>
+            <div className="flex items-center gap-2 mb-4 text-orange-400"><CheckCircle2 className="w-5 h-5" /><h3 className="font-bold">Run Summary</h3></div>
             <p className="text-sm text-zinc-400 mb-4">{result.summary}</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Metric label="Inserted" value={result.insertedCount} tone="text-green-400" />
