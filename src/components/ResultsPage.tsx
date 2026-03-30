@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, Globe, Phone, MapPin, ExternalLink, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Business } from '../types';
+import { BusinessRecord } from '../types';
 
 const CITIES = ['All', 'Baghdad', 'Erbil', 'Basra', 'Mosul', 'Sulaymaniyah', 'Najaf', 'Karbala'];
 const CATEGORIES = ['All', 'Restaurant', 'Hotel', 'Cafe', 'Pharmacy', 'Supermarket', 'Tech Company', 'Gym'];
+const COVERAGE_TYPES = ['All', 'Central City', 'Uncertain', 'Outside Central Coverage'];
 
 export function ResultsPage() {
-  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [city, setCity] = useState('All');
   const [category, setCategory] = useState('All');
+  const [coverageType, setCoverageType] = useState('All');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 10;
@@ -18,16 +20,14 @@ export function ResultsPage() {
   const fetchBusinesses = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        pageSize: pageSize.toString(),
-      });
+      const params = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString() });
       if (city !== 'All') params.append('city', city);
       if (category !== 'All') params.append('category', category);
+      if (coverageType !== 'All') params.append('coverage_type', coverageType);
 
       const response = await fetch(`/api/businesses?${params}`);
       if (!response.ok) throw new Error('Failed to fetch businesses');
-      
+
       const data = await response.json();
       setBusinesses(data.data);
       setTotal(data.total);
@@ -40,30 +40,59 @@ export function ResultsPage() {
 
   useEffect(() => {
     fetchBusinesses();
-  }, [city, category, page]);
+  }, [city, category, coverageType, page]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Discovered Businesses</h1>
+        <h1 className="text-2xl font-bold">City-Center Business Records</h1>
         <div className="flex items-center gap-2 bg-white border border-zinc-200 p-1 rounded-xl shadow-sm">
           <div className="flex items-center gap-2 px-3 text-zinc-400">
             <Filter className="w-4 h-4" />
           </div>
-          <select 
+          <select
             value={city}
-            onChange={(e) => { setCity(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setCity(e.target.value);
+              setPage(1);
+            }}
             className="bg-transparent text-sm font-medium py-2 pr-4 focus:outline-none"
           >
-            {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {CITIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
           <div className="w-px h-4 bg-zinc-200" />
-          <select 
+          <select
             value={category}
-            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setPage(1);
+            }}
             className="bg-transparent text-sm font-medium py-2 pr-4 focus:outline-none"
           >
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <div className="w-px h-4 bg-zinc-200" />
+          <select
+            value={coverageType}
+            onChange={(e) => {
+              setCoverageType(e.target.value);
+              setPage(1);
+            }}
+            className="bg-transparent text-sm font-medium py-2 pr-4 focus:outline-none"
+          >
+            {COVERAGE_TYPES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -81,7 +110,7 @@ export function ResultsPage() {
       ) : businesses.length === 0 ? (
         <div className="bg-white border border-zinc-200 p-20 rounded-2xl text-center text-zinc-400">
           <p className="text-lg font-medium mb-2">No businesses found</p>
-          <p className="text-sm">Try running a discovery run first or changing your filters.</p>
+          <p className="text-sm">Try importing or running discovery, then filter by city center.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -91,29 +120,42 @@ export function ResultsPage() {
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-bold">{biz.name}</h3>
-                      {biz.local_name && (
-                        <span className="text-sm font-medium text-zinc-400 font-arabic" dir="rtl">
-                          {biz.local_name}
-                        </span>
-                      )}
+                      <h3 className="text-lg font-bold">{biz.business_name}</h3>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500">
                       <span className="bg-zinc-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider">{biz.category}</span>
-                      <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {biz.city}</span>
-                      {biz.phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {biz.phone}</span>}
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" /> {biz.city} · {biz.district || 'N/A'}
+                      </span>
+                      {biz.phone_primary && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5" /> {biz.phone_primary}
+                        </span>
+                      )}
+                      <span className="text-xs px-2 py-0.5 rounded bg-orange-50 text-orange-700">{biz.coverage_type}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-zinc-100 text-zinc-700">{biz.status}</span>
                     </div>
-                    {biz.address && <p className="text-sm text-zinc-400 mt-2">{biz.address}</p>}
+                    {biz.address_normalized && <p className="text-sm text-zinc-400 mt-2">{biz.address_normalized}</p>}
                   </div>
                   <div className="flex items-center gap-2">
-                    {biz.website && (
-                      <a href={biz.website} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 transition-colors">
+                    {biz.website_url && (
+                      <a
+                        href={biz.website_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 transition-colors"
+                      >
                         <Globe className="w-5 h-5" />
                       </a>
                     )}
                     {biz.source_url && (
-                      <a href={biz.source_url} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 transition-colors flex items-center gap-1 text-xs font-medium">
-                        <span className="uppercase tracking-tighter">{biz.source}</span>
+                      <a
+                        href={biz.source_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 transition-colors flex items-center gap-1 text-xs font-medium"
+                      >
+                        <span className="uppercase tracking-tighter">{biz.source_name}</span>
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     )}
@@ -125,19 +167,21 @@ export function ResultsPage() {
 
           <div className="flex items-center justify-between pt-4">
             <p className="text-sm text-zinc-500">
-              Showing <span className="font-bold text-zinc-900">{(page-1)*pageSize + 1}</span> to <span className="font-bold text-zinc-900">{Math.min(page*pageSize, total)}</span> of <span className="font-bold text-zinc-900">{total}</span>
+              Showing <span className="font-bold text-zinc-900">{(page - 1) * pageSize + 1}</span> to{' '}
+              <span className="font-bold text-zinc-900">{Math.min(page * pageSize, total)}</span> of{' '}
+              <span className="font-bold text-zinc-900">{total}</span>
             </p>
             <div className="flex gap-2">
               <button
                 disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
+                onClick={() => setPage((p) => p - 1)}
                 className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-100 disabled:opacity-30 transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 disabled={page * pageSize >= total}
-                onClick={() => setPage(p => p + 1)}
+                onClick={() => setPage((p) => p + 1)}
                 className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-100 disabled:opacity-30 transition-colors"
               >
                 <ChevronRight className="w-5 h-5" />
