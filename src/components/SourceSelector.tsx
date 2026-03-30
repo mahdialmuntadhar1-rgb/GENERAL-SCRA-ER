@@ -1,36 +1,47 @@
-import React, { useState } from 'react';
-import { 
-  CheckSquare, 
-  Square, 
-  Zap, 
-  Users, 
-  Layers, 
-  Settings2, 
+import React, { useMemo, useState } from 'react';
+import {
+  CheckSquare,
+  Square,
+  Zap,
+  Users,
+  Layers,
   Search,
   AlertCircle
 } from 'lucide-react';
 import { SOURCES } from '../constants';
-import { Source } from '../types';
+import { DiscoverySource } from '../types';
 
-export function SourceSelector() {
-  const [selectedIds, setSelectedIds] = useState<string[]>(SOURCES.filter(s => s.enabled).map(s => s.id));
+interface SourceSelectorProps {
+  selectedSources: DiscoverySource[];
+  onChange: (sources: DiscoverySource[]) => void;
+}
+
+export function SourceSelector({ selectedSources, onChange }: SourceSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const enabledSourceIds = useMemo(
+    () => SOURCES.filter((s) => s.enabled).map((s) => s.id),
+    []
+  );
+
   const toggleAll = () => {
-    if (selectedIds.length === SOURCES.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(SOURCES.map(s => s.id));
+    if (selectedSources.length === enabledSourceIds.length) {
+      onChange([]);
+      return;
     }
+
+    onChange(enabledSourceIds);
   };
 
-  const toggleSource = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+  const toggleSource = (id: DiscoverySource) => {
+    onChange(
+      selectedSources.includes(id)
+        ? selectedSources.filter((i) => i !== id)
+        : [...selectedSources, id]
     );
   };
 
-  const filteredSources = SOURCES.filter(s => 
+  const filteredSources = SOURCES.filter((s) =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -44,20 +55,20 @@ export function SourceSelector() {
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input 
-              type="text" 
-              placeholder="Search sources..." 
+            <input
+              type="text"
+              placeholder="Search sources..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all w-48"
             />
           </div>
-          <button 
+          <button
             onClick={toggleAll}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl text-xs font-bold hover:bg-zinc-800 transition-all shadow-sm"
           >
-            {selectedIds.length === SOURCES.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-            {selectedIds.length === SOURCES.length ? 'Deselect All' : 'Select All'}
+            {selectedSources.length === enabledSourceIds.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+            {selectedSources.length === enabledSourceIds.length ? 'Deselect All' : 'Select All'}
           </button>
         </div>
       </div>
@@ -76,18 +87,18 @@ export function SourceSelector() {
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {filteredSources.map((source) => (
-              <tr 
-                key={source.id} 
+              <tr
+                key={source.id}
                 className={`group hover:bg-zinc-50 transition-colors cursor-pointer ${!source.enabled && 'opacity-50'}`}
                 onClick={() => source.enabled && toggleSource(source.id)}
               >
                 <td className="px-6 py-4">
                   <div className={`w-5 h-5 rounded border transition-all flex items-center justify-center ${
-                    selectedIds.includes(source.id) 
-                      ? 'bg-orange-600 border-orange-600 shadow-sm' 
+                    selectedSources.includes(source.id)
+                      ? 'bg-orange-600 border-orange-600 shadow-sm'
                       : 'border-zinc-300 group-hover:border-zinc-400'
                   }`}>
-                    {selectedIds.includes(source.id) && <CheckSquare className="w-4 h-4 text-white" />}
+                    {selectedSources.includes(source.id) && <CheckSquare className="w-4 h-4 text-white" />}
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -97,14 +108,14 @@ export function SourceSelector() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-zinc-900">{source.name}</p>
-                      {source.freeTier && <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Free Tier Available</span>}
+                      {source.description && <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{source.description}</span>}
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-center">
                   <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                    source.type === 'api' ? 'bg-blue-50 text-blue-600' : 
-                    source.type === 'scraper' ? 'bg-purple-50 text-purple-600' : 
+                    source.type === 'api' ? 'bg-blue-50 text-blue-600' :
+                    source.type === 'scraper' ? 'bg-purple-50 text-purple-600' :
                     'bg-zinc-100 text-zinc-600'
                   }`}>
                     {source.type}
@@ -113,16 +124,16 @@ export function SourceSelector() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     {source.bulkSupport && (
-                      <div className="p-1.5 bg-zinc-100 rounded-lg text-zinc-500 hover:text-zinc-900 transition-colors" title="Bulk Support">
+                      <div className="p-1.5 bg-zinc-100 rounded-lg text-zinc-500" title="Bulk Support">
                         <Layers className="w-3.5 h-3.5" />
                       </div>
                     )}
                     {source.socialSupport && (
-                      <div className="p-1.5 bg-zinc-100 rounded-lg text-zinc-500 hover:text-zinc-900 transition-colors" title="Social/Contact Support">
+                      <div className="p-1.5 bg-zinc-100 rounded-lg text-zinc-500" title="Social/Contact Support">
                         <Users className="w-3.5 h-3.5" />
                       </div>
                     )}
-                    <div className="p-1.5 bg-zinc-100 rounded-lg text-zinc-500 hover:text-zinc-900 transition-colors" title="High Precision POI">
+                    <div className="p-1.5 bg-zinc-100 rounded-lg text-zinc-500" title="High Precision POI">
                       <Zap className="w-3.5 h-3.5" />
                     </div>
                   </div>
@@ -149,7 +160,7 @@ export function SourceSelector() {
       <div className="p-4 bg-zinc-50 border-t border-zinc-100 flex items-center gap-3">
         <AlertCircle className="w-4 h-4 text-orange-500" />
         <p className="text-xs text-zinc-500 font-medium">
-          <span className="font-bold text-zinc-900">{selectedIds.length} sources selected.</span> Priority 1 sources will be queried first for normalization.
+          <span className="font-bold text-zinc-900">{selectedSources.length} sources selected.</span> Only implemented sources can be used for live collection.
         </p>
       </div>
     </div>

@@ -54,7 +54,7 @@ export class GeminiAdapter implements DiscoveryAdapter {
         city,
         source: 'gemini',
         source_url: 'https://gemini.google.com',
-        confidence_score: b.confidence_score || 0.8
+        confidence_score: b.confidence_score || 0.55
       }));
     } catch (error) {
       console.error("Gemini discovery error:", error);

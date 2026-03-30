@@ -1,42 +1,58 @@
-# Supabase Schema for Iraq Business Discovery
+# SKYHIGH — Iraq Business Discovery (Supabase + Express)
 
-Run this SQL in your Supabase SQL Editor to set up the database.
+This project now runs a real end-to-end flow:
 
-```sql
--- Create the businesses table
-CREATE TABLE businesses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  local_name TEXT,
-  category TEXT NOT NULL,
-  city TEXT NOT NULL,
-  governorate TEXT,
-  address TEXT,
-  phone TEXT,
-  website TEXT,
-  facebook_url TEXT,
-  instagram_url TEXT,
-  source TEXT NOT NULL,
-  source_url TEXT,
-  confidence_score FLOAT DEFAULT 0.0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+1. Select city/category/sources in UI
+2. Click **Start Collection**
+3. Frontend calls `POST /api/run`
+4. Backend runs real collectors (`osm`, optional `gemini`)
+5. Results are inserted into Supabase
+6. Admin dashboard/review queue read live records via backend APIs
 
--- Add indexes for common filters
-CREATE INDEX idx_businesses_city ON businesses(city);
-CREATE INDEX idx_businesses_category ON businesses(category);
-CREATE INDEX idx_businesses_source ON businesses(source);
+## Database setup (Supabase)
 
--- Add a unique constraint for basic deduplication
--- Note: This is a strict constraint. In production, you might prefer 
--- application-level logic or a more flexible index.
--- ALTER TABLE businesses ADD CONSTRAINT unique_business UNIQUE (name, phone, city);
+Run the migration in Supabase SQL Editor:
+
+- `supabase/migrations/20260330_businesses_schema.sql`
+
+It creates the `businesses` table and required indexes.
+
+## Environment variables
+
+Create a `.env` file (or set env vars in runtime):
+
+- `SUPABASE_URL` (required)
+- `SUPABASE_SERVICE_ROLE_KEY` (required, backend/server only)
+- `GEMINI_API_KEY` (optional: enables Gemini adapter)
+
+> `SUPABASE_ANON_KEY` is not required for this server-driven architecture.
+
+## Start locally
+
+```bash
+npm install
+npm run dev
 ```
 
-## Setup Instructions
+Server runs on `http://localhost:3000`.
 
-1. Create a new Supabase project.
-2. Run the SQL above in the SQL Editor.
-3. Copy your `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to your secrets/env.
-4. Add `GEMINI_API_KEY` to your secrets.
-5. Run `npm run dev` to start the app.
+## API endpoints
+
+- `POST /api/run`
+  - body:
+    ```json
+    {
+      "city": "Baghdad",
+      "category": "Restaurant",
+      "sources": ["osm", "gemini"]
+    }
+    ```
+- `GET /api/businesses?page=1&pageSize=20&city=Baghdad&search=coffee`
+- `GET /api/dashboard-summary`
+- `GET /api/health`
+
+## Notes
+
+- OSM/Nominatim is the first real non-Gemini collector.
+- Gemini remains optional and should be treated as lower-confidence lead generation.
+- No Firebase usage; Supabase is used server-side with service role key.
