@@ -1,93 +1,96 @@
-# Iraq City-Center Business Acquisition & Verification Pipeline
+# Iraq Business Pipeline (City-First, Central-City Coverage)
 
-This project now implements a **modular source-selector architecture** for city-center business discovery in Iraq, with strict quality and central-zone controls.
+This project now enforces a **city-first** business data model with strict central-city coverage controls.
+Governorate is retained only as a secondary raw field (`governorate_raw`).
 
-## Implemented Deliverables
+## Database Migration (Supabase SQL)
 
-- Provider-based connector architecture with a shared interface:
-  - `searchBusinesses(input)`
-  - `enrichBusiness(record)`
-  - `validateRecord(record)`
-  - `mapToCanonicalSchema(record)`
-- Source selector UI with provider checkboxes, select-all, toggles, city/category/subcategory/district selectors, priority mode, execution mode, limits, duplicate tolerance, verification strictness.
-- Canonical business schema with quality/verification/duplicate/suburb risk scoring.
-- Execution modes: sequence/parallel + stop threshold + fallback search behavior.
-- Free-tier-first strategy and provider metadata.
-- Central-city enforcement via per-city central-zone allowlist.
-- Validation and enrichment utilities:
-  - phone normalization
-  - URL/social validation
-  - address/city/district normalization
-  - junk placeholder detection
-- Merge logic with duplicate keying, field confidence, and evidence aggregation.
-- Import/export service hooks for CSV/XLSX/JSON payloads.
-- QC workflow statuses:
-  - Pending Review
-  - Needs Cleaning
-  - Needs Verification
-  - Verified
-  - Rejected
-  - Export Ready
-  - Outside Central Coverage
-- API endpoints:
-  - `GET /api/providers`
-  - `GET /api/cities/central-zones`
-  - `POST /api/run`
-  - `POST /api/import`
-  - `POST /api/export`
+Run this SQL in Supabase SQL Editor.
 
-## Canonical Schema
+```sql
+CREATE TABLE IF NOT EXISTS businesses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_name TEXT NOT NULL,
+  normalized_business_name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  subcategory TEXT,
+  city TEXT NOT NULL,
+  district TEXT,
+  city_center_zone TEXT,
+  coverage_type TEXT NOT NULL DEFAULT 'Uncertain',
+  governorate_raw TEXT,
+  address_text TEXT,
+  address_normalized TEXT,
+  google_maps_url TEXT,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  phone_primary TEXT,
+  phone_secondary TEXT,
+  whatsapp_number TEXT,
+  website_url TEXT,
+  facebook_url TEXT,
+  instagram_url TEXT,
+  tiktok_url TEXT,
+  telegram_url TEXT,
+  email TEXT,
+  description TEXT,
+  opening_hours TEXT,
+  image_url TEXT,
+  logo_url TEXT,
+  source_name TEXT NOT NULL,
+  source_url TEXT,
+  source_type TEXT NOT NULL,
+  completeness_score INTEGER DEFAULT 0,
+  verification_score INTEGER DEFAULT 0,
+  publish_readiness_score INTEGER DEFAULT 0,
+  duplicate_risk_score INTEGER DEFAULT 0,
+  suburb_risk_score INTEGER DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'Pending Review',
+  verification_notes TEXT,
+  reviewed_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-See `src/types.ts` (`CanonicalBusinessRecord`) for the full schema fields, including:
-- identity & location
-- contact & social
-- source attribution
-- quality/verification scoring
-- QC status and notes
+CREATE TABLE IF NOT EXISTS business_audit_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  changed_by TEXT NOT NULL,
+  previous_status TEXT,
+  next_status TEXT NOT NULL,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-## Provider Configuration
-
-See `src/server/pipeline/config/providers.ts` for metadata and capabilities of:
-- Geoapify
-- Foursquare
-- HERE
-- TomTom
-- OSM/Nominatim
-- SerpApi
-- Outscraper
-- Apify
-- CSV upload
-- XLSX upload
-- JSON upload
-
-## Central City Enforcement
-
-See `src/server/pipeline/config/centralZones.ts`.
-Records outside central allowlist zones are flagged as **Outside Central Coverage**, blocked from auto-publish, and require manual review.
-
-## TODO: API Keys & Provider Setup
-
-1. Configure environment variables and secrets for each provider client:
-   - `GEOAPIFY_API_KEY`
-   - `FOURSQUARE_API_KEY`
-   - `HERE_API_KEY`
-   - `TOMTOM_API_KEY`
-   - `SERPAPI_API_KEY`
-   - `OUTSCRAPER_API_KEY`
-   - `APIFY_API_TOKEN`
-2. Replace mock connector implementation in `GenericProviderConnector.searchBusinesses` with real provider SDK/API calls.
-3. Add source-specific rate limiting and retry policies.
-4. Add persistent QC/audit tables in Supabase for:
-   - field-level attribution
-   - merge history
-   - review queue transitions
-   - import/export job history
-5. Add real CSV/XLSX parsing on backend for file uploads (multipart ingestion).
-6. Add XLSX/CSV export generation and downloadable files.
-
-## Local Run
-
-```bash
-npm install
-npm run dev
+CREATE INDEX IF NOT EXISTS idx_businesses_city ON businesses(city);
+CREATE INDEX IF NOT EXISTS idx_businesses_category ON businesses(category);
+CREATE INDEX IF NOT EXISTS idx_businesses_status ON businesses(status);
+CREATE INDEX IF NOT EXISTS idx_businesses_source_type ON businesses(source_type);
+CREATE INDEX IF NOT EXISTS idx_businesses_coverage ON businesses(coverage_type);
+CREATE INDEX IF NOT EXISTS idx_businesses_normalized_name ON businesses(normalized_business_name);
 ```
+
+## Feature Coverage
+
+- City-center allowlist enforcement per city (`src/server/config/cityCenterZones.ts`).
+- Import pipeline supporting CSV, XLSX (base64 payload), and JSON.
+- Row normalization and validation (phone, URLs, city/category/address text cleanup).
+- Duplicate-risk and quality scoring before insert.
+- QC statuses + audit history tracking endpoint.
+- Export pipeline for verified/export-ready and quality reports.
+
+## API Endpoints
+
+- `POST /api/run` discovery run
+- `POST /api/import` import pipeline
+- `POST /api/qc/status` QC status update + audit log
+- `GET /api/businesses` filters: city/category/status/coverage_type/source_name
+- `GET /api/export` formats: csv/xlsx/json with filters
+- `GET /api/export/reports` duplicates/incomplete/rejected datasets
+
+## TODOs (Manual Policy Decisions)
+
+1. Expand/approve city-center district allowlists with local domain experts.
+2. Add stricter Arabic/Kurdish transliteration matching for dedupe.
+3. Add per-source trust weighting in verification score.
+4. Add admin screens for import file upload and QC actions.

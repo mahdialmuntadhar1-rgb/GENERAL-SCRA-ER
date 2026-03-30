@@ -1,76 +1,118 @@
-import { Business, DiscoveryRequest, DiscoveryResult } from '../types';
+import { BusinessRecord, DiscoveryRequest, DiscoveryResult } from '../types';
+import { GeminiAdapter } from './adapters/gemini';
+import { WebDirectoryAdapter } from './adapters/web';
 import { supabase } from './supabase';
-import { runSourceExecution } from './pipeline/services/executionService';
-import { mapUploadRows, generateImportExportReport } from './pipeline/services/importExportService';
-import { mergeRecords } from './pipeline/services/mergeService';
-import { applyQCWorkflow } from './pipeline/services/qcService';
+import { evaluateCoverage } from './utils/cityCenter';
+import { normalizeRecord } from './utils/normalize';
+import {
+  computeCompleteness,
+  computeDuplicateRisk,
+  computePublishReadiness,
+  computeVerification,
+  inferStatus
+} from './utils/scoring';
 
-function toLegacyBusiness(record: any): Business {
-  return {
-    name: record.business_name,
-    local_name: undefined,
-    category: record.category,
-    city: record.city,
-    governorate: undefined,
-    address: record.address_text,
-    phone: record.phone_primary,
-    website: record.website_url,
-    facebook_url: record.facebook_url,
-    instagram_url: record.instagram_url,
-    source: record.provider_id,
-    source_url: record.source_url,
-    confidence_score: record.verification_score,
-  };
+const adapters = [new GeminiAdapter(), new WebDirectoryAdapter()];
+
+async function fetchExisting(city: string): Promise<Partial<BusinessRecord>[]> {
+  const { data } = await supabase
+    .from('businesses')
+    .select('normalized_business_name,phone_primary,address_normalized')
+    .eq('city', city)
+    .limit(3000);
+  return (data || []) as Partial<BusinessRecord>[];
 }
 
 export async function runDiscovery(req: DiscoveryRequest): Promise<DiscoveryResult> {
-  const { records: sourceRecords, errors, selectedProviders } = await runSourceExecution(req);
-  const uploaded = mapUploadRows(req.uploads, req.options.city, req.options.category);
-  const records = applyQCWorkflow(mergeRecords([...sourceRecords, ...uploaded]));
+  const { city, category, sources } = req;
+  const results: Partial<BusinessRecord>[] = [];
+  const errors: string[] = [];
+
+  for (const sourceId of sources) {
+    const adapter = adapters.find((item) => item.id === sourceId);
+    if (!adapter) continue;
+
+    try {
+      const found = await adapter.discover(city, category);
+      results.push(...found);
+    } catch (err: any) {
+      errors.push(`${sourceId}: ${err.message}`);
+    }
+  }
 
   let insertedCount = 0;
   let skippedCount = 0;
+  let rejectedCount = 0;
+  let needsManualReviewCount = 0;
 
-  for (const record of records) {
-    if (record.status === 'Rejected') {
+  for (const raw of results) {
+    const normalized = normalizeRecord(raw);
+    if (!normalized.business_name || !normalized.city || !normalized.category) {
       skippedCount++;
       continue;
     }
 
-    const candidate = toLegacyBusiness(record);
+    const existing = await fetchExisting(normalized.city);
+    const coverage = evaluateCoverage(normalized.city, normalized.district);
 
-    const { data: existing } = await supabase
-      .from('businesses')
-      .select('id')
-      .or(`name.eq."${candidate.name}",phone.eq."${candidate.phone || ''}"`)
-      .eq('city', candidate.city)
-      .maybeSingle();
+    const completeness = computeCompleteness(normalized);
+    const verification = computeVerification(normalized);
+    const duplicateRisk = computeDuplicateRisk(normalized, existing);
+    const publishReadiness = computePublishReadiness(
+      completeness,
+      verification,
+      duplicateRisk,
+      coverage.suburbRiskScore,
+      coverage.coverageType
+    );
 
-    if (existing) {
-      skippedCount++;
+    const record: Partial<BusinessRecord> = {
+      ...normalized,
+      city_center_zone: coverage.cityCenterZone,
+      coverage_type: coverage.coverageType,
+      suburb_risk_score: coverage.suburbRiskScore,
+      completeness_score: completeness,
+      verification_score: verification,
+      duplicate_risk_score: duplicateRisk,
+      publish_readiness_score: publishReadiness,
+      status: inferStatus({
+        ...normalized,
+        coverage_type: coverage.coverageType,
+        suburb_risk_score: coverage.suburbRiskScore,
+        completeness_score: completeness,
+        verification_score: verification,
+        duplicate_risk_score: duplicateRisk,
+        publish_readiness_score: publishReadiness
+      }),
+      verification_notes: coverage.reason,
+      source_type: raw.source_type || 'manual'
+    };
+
+    if (record.status === 'Pending Review') needsManualReviewCount++;
+
+    if (record.coverage_type === 'Outside Central Coverage' || record.status === 'Rejected') {
+      rejectedCount++;
       continue;
     }
 
-    const { error } = await supabase
-      .from('businesses')
-      .insert(candidate);
-
+    const { error } = await supabase.from('businesses').insert(record);
     if (error) {
-      errors.push(`Insert error for ${candidate.name}: ${error.message}`);
+      errors.push(`Insert error for ${record.business_name}: ${error.message}`);
       skippedCount++;
-    } else {
-      insertedCount++;
+      continue;
     }
+
+    insertedCount++;
   }
 
   const importExportReport = generateImportExportReport(records, selectedProviders);
 
   return {
-    summary: `Discovery completed for ${req.options.category} in ${req.options.city}.`,
+    summary: `City-first discovery completed for ${category} in ${city}.`,
     insertedCount,
     skippedCount,
-    errors,
-    records,
-    importExportReport,
+    rejectedCount,
+    needsManualReviewCount,
+    errors
   };
 }

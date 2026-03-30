@@ -1,10 +1,8 @@
-export type ProviderType = 'poi' | 'search' | 'scraping' | 'manual_upload' | 'geocoding';
+export type DiscoverySource = 'gemini' | 'facebook' | 'instagram' | 'web_directory';
 
-export type DiscoverySource = 'gemini' | 'web_directory' | 'facebook' | 'instagram';
+export type CoverageType = 'Central City' | 'Outside Central Coverage' | 'Uncertain';
 
-export type CoverageType = 'central_city' | 'outside_central' | 'unknown';
-
-export type QCStatus =
+export type BusinessStatus =
   | 'Pending Review'
   | 'Needs Cleaning'
   | 'Needs Verification'
@@ -13,68 +11,17 @@ export type QCStatus =
   | 'Export Ready'
   | 'Outside Central Coverage';
 
-export type SourcePriorityMode =
-  | 'source-priority'
-  | 'best-coverage'
-  | 'cheapest-first'
-  | 'free-tier-first';
-
-export interface ProviderConfig {
-  provider_id: string;
-  provider_name: string;
-  provider_type: ProviderType;
-  is_enabled: boolean;
-  priority: number;
-  supports_phone: boolean;
-  supports_social: boolean;
-  supports_address: boolean;
-  supports_coordinates: boolean;
-  supports_hours: boolean;
-  supports_images: boolean;
-  supports_bulk: boolean;
-  supports_free_tier: boolean;
-  cost_notes: string;
-  rate_limit_notes: string;
-}
-
-export interface SourceSelectorOptions {
-  selectAllSources: boolean;
-  selectedProviderIds: string[];
-  sourcePriorityMode: SourcePriorityMode;
-  freeTierOnly: boolean;
-  mapPoiOnly: boolean;
-  enrichmentOnly: boolean;
-  fallbackSearchOnly: boolean;
-  manualUploadsOnly: boolean;
-  centralCityOnly: boolean;
-  city: string;
-  category: string;
-  subcategory: string;
-  district: string;
-  maxResultsPerSource: number;
-  duplicateTolerance: number;
-  verificationStrictness: number;
-  executionMode: 'sequence' | 'parallel';
-  stopOnThreshold: number;
-}
-
-export interface SourceAttribution {
-  providerId: string;
-  sourceUrl?: string;
-  timestamp: string;
-  confidence: number;
-}
-
-export interface CanonicalBusinessRecord {
+export interface BusinessRecord {
   id?: string;
   business_name: string;
-  normalized_business_name?: string;
+  normalized_business_name: string;
   category: string;
   subcategory?: string;
   city: string;
   district?: string;
   city_center_zone?: string;
   coverage_type: CoverageType;
+  governorate_raw?: string;
   address_text?: string;
   address_normalized?: string;
   google_maps_url?: string;
@@ -93,56 +40,34 @@ export interface CanonicalBusinessRecord {
   opening_hours?: string;
   image_url?: string;
   logo_url?: string;
-  provider_id: string;
   source_name: string;
   source_url?: string;
-  source_type: ProviderType;
+  source_type: DiscoverySource | 'manual' | 'import_csv' | 'import_xlsx' | 'import_json';
   completeness_score: number;
   verification_score: number;
   publish_readiness_score: number;
   duplicate_risk_score: number;
   suburb_risk_score: number;
-  status: QCStatus;
+  status: BusinessStatus;
   verification_notes?: string;
-  evidence?: SourceAttribution[];
-  field_confidence?: Record<string, number>;
+  reviewed_by?: string;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface UploadPayload {
-  fileType: 'csv' | 'xlsx' | 'json';
-  rows: Record<string, unknown>[];
-  fileName?: string;
-}
-
 export interface DiscoveryRequest {
-  options: SourceSelectorOptions;
-  uploads?: UploadPayload[];
-}
-
-export interface ImportReport {
-  import_summary: {
-    total_rows: number;
-    accepted_rows: number;
-    rejected_rows: number;
-  };
-  rejected_rows_report: Array<{ index: number; reason: string }>;
-  duplicate_report: CanonicalBusinessRecord[];
-  incomplete_report: CanonicalBusinessRecord[];
-  export_ready_report: CanonicalBusinessRecord[];
-  provider_performance_report: Array<{
-    provider_id: string;
-    records_processed: number;
-    records_verified: number;
-    avg_completeness_score: number;
-  }>;
+  city: string;
+  category: string;
+  district?: string;
+  sources: DiscoverySource[];
 }
 
 export interface DiscoveryResult {
   summary: string;
   insertedCount: number;
   skippedCount: number;
+  rejectedCount: number;
+  needsManualReviewCount: number;
   errors: string[];
   records: CanonicalBusinessRecord[];
   importExportReport: ImportReport;
@@ -164,5 +89,42 @@ export interface Business {
   source: string;
   source_url?: string;
   confidence_score: number;
+  created_at?: string;
+}
+
+export interface ImportSummary {
+  sourceType: 'csv' | 'xlsx' | 'json';
+  totalRows: number;
+  validRows: number;
+  rejectedRows: number;
+  manualReviewRows: number;
+  duplicateRows: number;
+  insertedRows: number;
+  rejectionReasons: Record<string, number>;
+}
+
+export interface ExportQuery {
+  city?: string;
+  category?: string;
+  status?: BusinessStatus;
+  source_name?: string;
+  source_type?: string;
+  verifiedOnly?: boolean;
+  exportReadyOnly?: boolean;
+  includeRejected?: boolean;
+  format: 'csv' | 'xlsx' | 'json';
+}
+
+export interface ImportFieldMapping {
+  [targetField: string]: string;
+}
+
+export interface QCEvent {
+  id?: string;
+  business_id: string;
+  changed_by: string;
+  previous_status?: BusinessStatus;
+  next_status: BusinessStatus;
+  note?: string;
   created_at?: string;
 }
