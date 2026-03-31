@@ -27,6 +27,7 @@ export function ImportModule() {
 
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, valid: 0, flagged: 0, duplicates: 0 });
+  const [showCleanSuccess, setShowCleanSuccess] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -339,23 +340,29 @@ export function ImportModule() {
                   <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
                     Once you start the final import, records will be moved to the Review Queue for manual cleaning and verification.
                   </p>
-                  <div className="space-y-4">
-                    <button 
-                      onClick={() => {
-                        // Mock cleaning process
-                        const cleaned = previewData.length > 0 ? previewData.map(row => ({
-                          ...row,
-                          phone: row.phone?.replace(/[^\d+]/g, ''),
-                          name: row.name?.trim(),
-                          website: row.website?.toLowerCase().trim()
-                        })) : [];
-                        setPreviewData(cleaned);
-                        alert('Data cleaned and normalized successfully!');
-                      }}
-                      className="w-full bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 mb-2"
-                    >
-                      <Sparkles className="w-4 h-4 text-orange-500" /> Clean & Normalize
-                    </button>
+                    <div className="space-y-4">
+                      {showCleanSuccess && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-[10px] font-bold animate-in fade-in slide-in-from-top-2">
+                          <CheckCircle2 className="w-3 h-3" /> Data cleaned & normalized!
+                        </div>
+                      )}
+                      <button 
+                        onClick={() => {
+                          // Mock cleaning process
+                          const cleaned = previewData.length > 0 ? previewData.map(row => ({
+                            ...row,
+                            phone: row.phone?.replace(/[^\d+]/g, ''),
+                            name: row.name?.trim(),
+                            website: row.website?.toLowerCase().trim()
+                          })) : [];
+                          setPreviewData(cleaned);
+                          setShowCleanSuccess(true);
+                          setTimeout(() => setShowCleanSuccess(false), 3000);
+                        }}
+                        className="w-full bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 mb-2"
+                      >
+                        <Sparkles className="w-4 h-4 text-orange-500" /> Clean & Normalize
+                      </button>
                     <button 
                       onClick={() => setStep('summary')}
                       className="w-full bg-orange-600 hover:bg-orange-700 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-orange-600/20"

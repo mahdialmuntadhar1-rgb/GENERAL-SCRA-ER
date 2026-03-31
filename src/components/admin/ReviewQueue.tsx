@@ -133,6 +133,19 @@ export function ReviewQueue() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [filterCity, setFilterCity] = useState('All');
   const [viewingRecord, setViewingRecord] = useState<Partial<Business> | null>(null);
+  const [showSuccess, setShowSuccess] = useState<string | null>(null);
+
+  const handleBulkAction = (action: string) => {
+    setShowSuccess(`Bulk ${action} applied to ${selectedIds.length} records!`);
+    setSelectedIds([]);
+    setTimeout(() => setShowSuccess(null), 3000);
+  };
+
+  const handleRecordAction = (id: string, action: string) => {
+    setShowSuccess(`Record ${id} ${action}ed successfully!`);
+    setViewingRecord(null);
+    setTimeout(() => setShowSuccess(null), 3000);
+  };
 
   const toggleSelectAll = () => {
     if (selectedIds.length === mockBusinesses.length) {
@@ -163,6 +176,11 @@ export function ReviewQueue() {
             <p className="text-zinc-500 text-sm">Verify and clean business records for the central directory.</p>
           </div>
           <div className="flex items-center gap-2">
+            {showSuccess && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
+                <CheckCircle2 className="w-4 h-4" /> {showSuccess}
+              </div>
+            )}
             <button 
               onClick={() => {
                 triggerDownload(jsonToCsv(mockBusinesses), 'full_review_queue.csv', 'text/csv');
@@ -186,7 +204,7 @@ export function ReviewQueue() {
               </button>
             </div>
             <button 
-              onClick={() => alert('Bulk actions menu opened!')}
+              onClick={() => handleBulkAction('process')}
               className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors flex items-center gap-2"
             >
               Bulk Actions ({selectedIds.length})
@@ -405,10 +423,16 @@ export function ReviewQueue() {
           </div>
 
           <div className="p-6 border-t border-zinc-100 bg-zinc-50 grid grid-cols-2 gap-3">
-            <button className="px-4 py-3 bg-white border border-zinc-200 rounded-xl font-bold text-sm hover:bg-zinc-100 transition-all">
+            <button 
+              onClick={() => handleRecordAction(viewingRecord.id!, 'reject')}
+              className="px-4 py-3 bg-white border border-zinc-200 rounded-xl font-bold text-sm hover:bg-zinc-100 transition-all"
+            >
               Reject Record
             </button>
-            <button className="px-4 py-3 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-zinc-800 transition-all shadow-lg">
+            <button 
+              onClick={() => handleRecordAction(viewingRecord.id!, 'approv')}
+              className="px-4 py-3 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-zinc-800 transition-all shadow-lg"
+            >
               Verify & Approve
             </button>
           </div>
@@ -450,13 +474,22 @@ export function ReviewQueue() {
             >
               <Download className="w-4 h-4" /> Download
             </button>
-            <button className="flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
+            <button 
+              onClick={() => handleBulkAction('approve')}
+              className="flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
               <CheckCircle2 className="w-4 h-4" /> Approve
             </button>
-            <button className="flex items-center gap-2 text-sm font-bold text-red-400 hover:text-red-300 transition-colors">
+            <button 
+              onClick={() => handleBulkAction('reject')}
+              className="flex items-center gap-2 text-sm font-bold text-red-400 hover:text-red-300 transition-colors"
+            >
               <XCircle className="w-4 h-4" /> Reject
             </button>
-            <button className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-zinc-300 transition-colors">
+            <button 
+              onClick={() => handleBulkAction('delete')}
+              className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-zinc-300 transition-colors"
+            >
               <Trash2 className="w-4 h-4" /> Delete
             </button>
           </div>
