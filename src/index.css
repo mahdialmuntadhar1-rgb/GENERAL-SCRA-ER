@@ -10,3 +10,22 @@
   font-family: var(--font-arabic);
 }
 
+/* Recharts safety net - prevents -1 width/height errors */
+.recharts-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 200px;
+}
+
+.recharts-surface {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Chart containers must have explicit dimensions */
+.chart-container {
+  width: 100%;
+  height: 300px;
+  min-height: 200px;
+}
+
