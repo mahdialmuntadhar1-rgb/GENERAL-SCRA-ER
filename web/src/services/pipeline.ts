@@ -5,6 +5,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { normalizeBusiness, type RawBusinessInput, type NormalizedBusiness } from './normalize';
+import { normalizePhone, normalizeWebsite, normalizeInstagram, normalizeFacebook, normalizeName } from './normalize';
 import { findBestMatch, mergeRecords, type MatchResult, type MatchableRecord } from './matcher';
 
 // --- BATCH ID GENERATION ---
@@ -164,8 +165,8 @@ export async function matchBatch(
   // Fetch ALL production records for matching
   // For large databases, you'd want to fetch by governorate or use database-level matching
   const { data: existingRecords, error: existErr } = await supabase
-    .from('iraqi_businesses')
-    .select('id, name, normalized_name, phone, normalized_phone, website, normalized_website, facebook, normalized_facebook, instagram, normalized_instagram, city, governorate, category, latitude, longitude, dedupe_key, completeness_score, maps_url')
+    .from('businesses')
+    .select('id, name, phone, website, facebook, instagram, city, governorate, category, lat, lng')
     .eq('is_active', true);
 
   if (existErr) {
@@ -174,20 +175,17 @@ export async function matchBatch(
 
   const existing: MatchableRecord[] = (existingRecords || []).map((r) => ({
     id: r.id,
-    normalized_phone: r.normalized_phone,
-    normalized_website: r.normalized_website,
-    normalized_instagram: r.normalized_instagram,
-    normalized_facebook: r.normalized_facebook,
-    normalized_name: r.normalized_name,
+    normalized_phone: r.phone ? normalizePhone(r.phone) : null,
+    normalized_website: r.website ? normalizeWebsite(r.website) : null,
+    normalized_instagram: r.instagram ? normalizeInstagram(r.instagram) : null,
+    normalized_facebook: r.facebook ? normalizeFacebook(r.facebook) : null,
+    normalized_name: r.name ? normalizeName(r.name) : null,
     name: r.name,
     city: r.city,
     governorate: r.governorate,
     category: r.category,
-    latitude: r.latitude,
-    longitude: r.longitude,
-    dedupe_key: r.dedupe_key,
-    completeness_score: r.completeness_score,
-    maps_url: r.maps_url,
+    latitude: r.lat,
+    longitude: r.lng,
     phone: r.phone,
   }));
 
@@ -292,7 +290,7 @@ export async function applyMatches(
       const chunk = toInsert.slice(i, i + CHUNK).map((s) => stagingToProduction(s));
 
       const { data, error } = await supabase
-        .from('iraqi_businesses')
+        .from('businesses')
         .insert(chunk)
         .select('id');
 
@@ -317,7 +315,7 @@ export async function applyMatches(
 
       // Fetch current production record
       const { data: existingArr } = await supabase
-        .from('iraqi_businesses')
+        .from('businesses')
         .select('*')
         .eq('id', staged.matched_business_id)
         .single();
@@ -345,7 +343,7 @@ export async function applyMatches(
         updatePayload.completeness_score = merged.completeness_score;
 
         const { error } = await supabase
-          .from('iraqi_businesses')
+          .from('businesses')
           .update(updatePayload)
           .eq('id', staged.matched_business_id);
 
@@ -456,26 +454,23 @@ export async function runLocalPipeline(
   // Step 2: Fetch existing production records for matching
   onProgress?.('Fetching existing records...', 0, 1);
   const { data: existingRecords } = await supabase
-    .from('iraqi_businesses')
-    .select('id, name, normalized_name, phone, normalized_phone, website, normalized_website, facebook, normalized_facebook, instagram, normalized_instagram, city, governorate, category, latitude, longitude, dedupe_key, completeness_score, maps_url, source_confidence')
+    .from('businesses')
+    .select('id, name, phone, website, facebook, instagram, city, governorate, category, lat, lng')
     .eq('is_active', true);
 
   const existing: MatchableRecord[] = (existingRecords || []).map((r) => ({
     id: r.id,
-    normalized_phone: r.normalized_phone,
-    normalized_website: r.normalized_website,
-    normalized_instagram: r.normalized_instagram,
-    normalized_facebook: r.normalized_facebook,
-    normalized_name: r.normalized_name,
+    normalized_phone: r.phone ? normalizePhone(r.phone) : null,
+    normalized_website: r.website ? normalizeWebsite(r.website) : null,
+    normalized_instagram: r.instagram ? normalizeInstagram(r.instagram) : null,
+    normalized_facebook: r.facebook ? normalizeFacebook(r.facebook) : null,
+    normalized_name: r.name ? normalizeName(r.name) : null,
     name: r.name,
     city: r.city,
     governorate: r.governorate,
     category: r.category,
-    latitude: r.latitude,
-    longitude: r.longitude,
-    dedupe_key: r.dedupe_key,
-    completeness_score: r.completeness_score,
-    maps_url: r.maps_url,
+    latitude: r.lat,
+    longitude: r.lng,
     phone: r.phone,
   }));
 
@@ -527,7 +522,7 @@ export async function runLocalPipeline(
   for (let i = 0; i < toInsert.length; i += CHUNK) {
     const chunk = toInsert.slice(i, i + CHUNK).map((n) => normalizedToProduction(n));
     const { data, error } = await supabase
-      .from('iraqi_businesses')
+      .from('businesses')
       .insert(chunk)
       .select('id');
 
@@ -543,7 +538,7 @@ export async function runLocalPipeline(
   // Update existing
   for (const { normalized: n, matchedId } of toUpdate) {
     const { data: existRec } = await supabase
-      .from('iraqi_businesses')
+      .from('businesses')
       .select('*')
       .eq('id', matchedId)
       .single();
@@ -563,7 +558,7 @@ export async function runLocalPipeline(
       payload.completeness_score = merged.completeness_score;
 
       const { error } = await supabase
-        .from('iraqi_businesses')
+        .from('businesses')
         .update(payload)
         .eq('id', matchedId);
 
@@ -597,37 +592,23 @@ export async function runLocalPipeline(
 function stagingToProduction(staged: Record<string, unknown>) {
   return {
     name: staged.business_name,
-    name_en: staged.business_name_en,
-    normalized_name: staged.normalized_name,
+    nameAr: staged.nameAr,
+    nameKu: staged.nameKu,
     phone: staged.phone,
-    normalized_phone: staged.normalized_phone,
+    whatsapp: staged.whatsapp,
     website: staged.website,
-    normalized_website: staged.normalized_website,
     email: staged.email,
     address: staged.address,
-    normalized_address: staged.normalized_address,
     city: staged.city,
     governorate: staged.governorate,
-    country: staged.country || 'Iraq',
-    latitude: staged.latitude,
-    longitude: staged.longitude,
+    lat: staged.latitude,
+    lng: staged.longitude,
     category: staged.category,
     subcategory: staged.subcategory,
     facebook: staged.facebook,
-    normalized_facebook: staged.normalized_facebook,
     instagram: staged.instagram,
-    normalized_instagram: staged.normalized_instagram,
-    whatsapp: staged.whatsapp,
-    maps_url: staged.maps_url,
-    dedupe_key: staged.dedupe_key,
-    completeness_score: staged.completeness_score,
-    source: staged.source,
-    source_confidence: staged.source_confidence,
-    data_quality: (staged.completeness_score as number) >= 50 ? 'real' : 'partial',
-    verified: false,
-    is_active: true,
-    last_seen_at: new Date().toISOString(),
-    raw_data: staged.raw_data,
+    description: staged.description,
+    status: 'active',
   };
 }
 
@@ -638,34 +619,19 @@ function stagingToProductionObj(staged: Record<string, unknown>): Record<string,
 function normalizedToProduction(n: NormalizedBusiness) {
   return {
     name: n.business_name,
-    name_en: n.business_name_en,
-    normalized_name: n.normalized_name,
     phone: n.phone,
-    normalized_phone: n.normalized_phone,
+    whatsapp: n.whatsapp,
     website: n.website,
-    normalized_website: n.normalized_website,
     email: n.email,
     address: n.address,
-    normalized_address: n.normalized_address,
     city: n.city,
     governorate: n.governorate,
-    country: n.country,
-    latitude: n.latitude,
-    longitude: n.longitude,
+    lat: n.latitude,
+    lng: n.longitude,
     category: n.category,
     subcategory: n.subcategory,
     facebook: n.facebook,
-    normalized_facebook: n.normalized_facebook,
     instagram: n.instagram,
-    normalized_instagram: n.normalized_instagram,
-    dedupe_key: n.dedupe_key,
-    completeness_score: n.completeness_score,
-    source: n.source,
-    source_confidence: n.source_confidence,
-    data_quality: n.completeness_score >= 50 ? 'real' : 'partial',
-    verified: false,
-    is_active: true,
-    last_seen_at: new Date().toISOString(),
-    raw_data: n.raw_data,
+    status: 'active',
   };
 }

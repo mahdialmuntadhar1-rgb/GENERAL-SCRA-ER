@@ -2,9 +2,68 @@ import { useState, useCallback } from "react";
 import { useScraperStore, useReviewStore } from "@/stores";
 import { IRAQ_GOVERNORATES, CATEGORIES } from "@/config/iraq";
 import { normalizePhone } from "@/services/validation";
+import { mapCategoryToHumus, mapGovernorateToHumus } from "@/lib/supabase";
+import { validateIraqiPhone } from "@/services/phone-validator";
+import { batchFindInstagram } from "@/services/instagram-scraper";
+import { batchFindFacebook } from "@/services/facebook-scraper";
 import { toast } from "sonner";
 import type { Business } from "@/lib/supabase";
-import { Play, Square, RotateCw, MapPin, Tags, Settings } from "lucide-react";
+import {
+  Play, Square, RotateCw, MapPin, Settings, Tags,
+  Utensils, Coffee, Hotel, ShoppingBag, HeartPulse,
+  Building2, GraduationCap,
+  Film, Plane, Stethoscope, Scale, Hospital,
+  Home, PartyPopper, MoreHorizontal, Check,
+  Pill, Dumbbell, Sparkles, Store, Sofa,
+} from "lucide-react";
+
+// Category icon mapping for card display
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  restaurant: <Utensils className="h-6 w-6" />,
+  cafe: <Coffee className="h-6 w-6" />,
+  hotel: <Hotel className="h-6 w-6" />,
+  shop: <ShoppingBag className="h-6 w-6" />,
+  bank: <Building2 className="h-6 w-6" />,
+  education: <GraduationCap className="h-6 w-6" />,
+  entertainment: <Film className="h-6 w-6" />,
+  tourism: <Plane className="h-6 w-6" />,
+  doctors: <Stethoscope className="h-6 w-6" />,
+  lawyers: <Scale className="h-6 w-6" />,
+  hospitals: <Hospital className="h-6 w-6" />,
+  clinics: <HeartPulse className="h-6 w-6" />,
+  realestate: <Home className="h-6 w-6" />,
+  events: <PartyPopper className="h-6 w-6" />,
+  others: <MoreHorizontal className="h-6 w-6" />,
+  pharmacy: <Pill className="h-6 w-6" />,
+  gym: <Dumbbell className="h-6 w-6" />,
+  beauty: <Sparkles className="h-6 w-6" />,
+  supermarket: <Store className="h-6 w-6" />,
+  furniture: <Sofa className="h-6 w-6" />,
+};
+
+// Category display names for cards
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  restaurant: "RESTAURANTS & DINING",
+  cafe: "CAFES & COFFEE",
+  shop: "SHOPPING & RETAIL",
+  hotel: "HOTELS & STAYS",
+  bank: "BANKS & FINANCE",
+  education: "EDUCATION",
+  entertainment: "ENTERTAINMENT",
+  tourism: "TOURISM & TRAVEL",
+  doctors: "DOCTORS & PHYSICIANS",
+  lawyers: "LAWYERS & LEGAL",
+  hospitals: "HOSPITALS & CLINICS",
+  clinics: "MEDICAL CLINICS",
+  realestate: "REAL ESTATE",
+  events: "EVENTS & VENUES",
+  others: "OTHERS & GENERAL",
+  pharmacy: "PHARMACY & DRUGS",
+  gym: "GYM & FITNESS",
+  beauty: "BEAUTY & SALONS",
+  supermarket: "SUPERMARKETS",
+  furniture: "FURNITURE & HOME",
+};
 
 export function Scraper() {
   const {
@@ -75,7 +134,15 @@ export function Scraper() {
             category.name
           );
 
-          for (const business of businesses) {
+          // Enrich: validate phones + find Instagram/Facebook
+          if (businesses.length > 0) {
+            addLog(
+              `${govName} - ${category.name}: Validating phones & finding social...`
+            );
+          }
+          const enrichedBusinesses = await enrichOsmBusinesses(businesses, addLog);
+
+          for (const business of enrichedBusinesses) {
             const classified = classifyBusiness(business);
             if (classified._status === "validated") {
               addResult("validated", classified as Business);
@@ -84,8 +151,11 @@ export function Scraper() {
             }
           }
 
+          const phoneValid = enrichedBusinesses.filter((b) => (b as any)._phoneValid).length;
+          const hasIg = enrichedBusinesses.filter((b) => (b as any)._instagram).length;
+          const hasFb = enrichedBusinesses.filter((b) => (b as any)._facebook).length;
           addLog(
-            `${govName} - ${category.name}: ${businesses.length} businesses found`
+            `${govName} - ${category.name}: ${enrichedBusinesses.length} total | ✓${phoneValid} phones | 📸${hasIg} IG | f${hasFb} FB`
           );
         } catch (error) {
           addError(`Error scraping ${govName} - ${category.name}: ${error}`);
@@ -157,32 +227,85 @@ export function Scraper() {
           </div>
         </div>
 
-        {/* Category Selection */}
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Tags className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-semibold">Categories</h3>
+        {/* Categories - Card Grid */}
+        <div className="rounded-xl border-0 bg-gradient-to-br from-slate-900 to-slate-800 p-6 md:col-span-2">
+          <div className="flex items-center gap-2 mb-5">
+            <Tags className="h-5 w-5 text-amber-400" />
+            <h3 className="font-bold text-white text-lg">Categories ({selectedCategories.length} selected)</h3>
           </div>
-          <div className="h-[200px] overflow-y-auto space-y-2">
-            {Object.entries(CATEGORIES).map(([key, cat]) => (
-              <label key={key} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={selectedCategories.includes(key)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedCategories([...selectedCategories, key]);
+
+          {/* Card Grid - 15 categories like HUMU PLUS */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {Object.entries(CATEGORIES).map(([key, cat]) => {
+              const isSelected = selectedCategories.includes(key);
+              const displayName = CATEGORY_DISPLAY_NAMES[key] || cat.name.toUpperCase();
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedCategories(selectedCategories.filter((c) => c !== key));
                     } else {
-                      setSelectedCategories(
-                        selectedCategories.filter((c) => c !== key)
-                      );
+                      setSelectedCategories([...selectedCategories, key]);
                     }
                   }}
-                  className="rounded border-gray-300"
-                />
-                <span className="text-sm">{cat.name}</span>
-              </label>
-            ))}
+                  className={`
+                    group relative rounded-2xl p-5 text-center transition-all duration-300 overflow-hidden
+                    ${isSelected
+                      ? "bg-gradient-to-br from-amber-500/30 to-amber-600/20 border-2 border-amber-400 shadow-lg shadow-amber-500/20"
+                      : "bg-slate-800/80 border border-slate-700 hover:border-amber-500/50 hover:bg-slate-750"
+                    }
+                  `}
+                >
+                  {/* HOT Badge for popular categories */}
+                  {(key === "restaurant" || key === "cafe" || key === "events") && !isSelected && (
+                    <div className="absolute top-2 left-2 bg-amber-500 text-slate-900 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      HOT
+                    </div>
+                  )}
+
+                  {/* Selected indicator */}
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 bg-amber-400 text-slate-900 rounded-full p-1">
+                      <Check className="h-3 w-3" />
+                    </div>
+                  )}
+
+                  {/* Icon Container */}
+                  <div className={`
+                    mx-auto w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all
+                    ${isSelected 
+                      ? "bg-amber-500 text-slate-900" 
+                      : "bg-slate-700/50 text-amber-400 group-hover:bg-slate-700 group-hover:text-amber-300"
+                    }
+                  `}>
+                    {CATEGORY_ICONS[key] || <Tags className="h-6 w-6" />}
+                  </div>
+
+                  {/* Title */}
+                  <h4 className={`
+                    text-[11px] font-bold leading-tight tracking-wide uppercase
+                    ${isSelected ? "text-white" : "text-slate-300 group-hover:text-white"}
+                  `}>
+                    {displayName}
+                  </h4>
+
+                  {/* Types count */}
+                  <p className={`
+                    text-[10px] mt-2 font-medium
+                    ${isSelected ? "text-amber-300" : "text-slate-500 group-hover:text-slate-400"}
+                  `}>
+                    {cat.subcategories?.length || 0} TYPES
+                  </p>
+
+                  {/* Bottom accent line */}
+                  <div className={`
+                    absolute bottom-0 left-0 right-0 h-1 rounded-b-2xl transition-all
+                    ${isSelected ? "bg-amber-500" : "bg-slate-700 group-hover:bg-amber-500/30"}
+                  `} />
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -309,6 +432,58 @@ const ALL_OVERPASS_SERVERS = [
   "https://overpass.openstreetmap.ru/api/interpreter",
 ];
 
+// Enrich OSM businesses: validate phones + find Instagram/Facebook
+async function enrichOsmBusinesses(
+  osmBusinesses: Partial<Business>[],
+  _addLog: (msg: string) => void
+): Promise<Partial<Business>[]> {
+  const enriched: Partial<Business>[] = [];
+  let validPhoneCount = 0;
+
+  // Phase 1: Validate all phones
+  for (const business of osmBusinesses) {
+    const validation = validateIraqiPhone(business.phone);
+    (business as any)._phoneValid = validation.isValid;
+    if (validation.isValid) {
+      business.phone = validation.formatted; // Use normalized phone
+      validPhoneCount++;
+    }
+    enriched.push(business);
+  }
+
+  // Phase 2: Find Instagram (parallel batch)
+  const igCandidates = enriched.filter((b) => b.name && b.phone);
+  if (igCandidates.length > 0) {
+    const igResults = await batchFindInstagram(
+      igCandidates.map((b) => ({ name: b.name || "", city: b.city || "" }))
+    );
+    for (const business of enriched) {
+      const key = business.name;
+      if (key && igResults.has(key)) {
+        const ig = igResults.get(key);
+        (business as any)._instagram = ig?.handle;
+      }
+    }
+  }
+
+  // Phase 3: Find Facebook (parallel batch)
+  const fbCandidates = enriched.filter((b) => b.name && b.phone);
+  if (fbCandidates.length > 0) {
+    const fbResults = await batchFindFacebook(
+      fbCandidates.map((b) => ({ name: b.name || "", city: b.city || "" }))
+    );
+    for (const business of enriched) {
+      const key = business.name;
+      if (key && fbResults.has(key)) {
+        const fb = fbResults.get(key);
+        (business as any)._facebook = fb?.url;
+      }
+    }
+  }
+
+  return enriched;
+}
+
 // Overpass API scraper with retry + rate-limit handling
 async function scrapeOverpass(
   lat: number,
@@ -395,7 +570,7 @@ function parseOsmElement(
   el: Record<string, unknown>,
   governorate: string,
   categoryKey: string,
-  categoryName: string
+  _categoryName: string // Display name (unused - using categoryKey for mapping)
 ): Partial<Business> {
   const tags = (el.tags as Record<string, string>) || {};
   const center = (el.center as Record<string, number>) || {};
@@ -502,24 +677,29 @@ function parseOsmElement(
   return {
     id: externalId, // client-side ID for selection — Supabase will generate real UUID on insert
     name,
-    name_en: nameEn,
+    name_en: nameEn,       // Store English name for compatibility
+    nameAr: name, // Use the original name as Arabic fallback
+    nameKu: nameKu,
     phone: normalizedPhone,
     website,
-    email,
+    email,                 // Store email for internal use
     address: fullAddr,
     city,
-    governorate,
-    country: "Iraq",
-    latitude: lat,
-    longitude: lon,
-    category: categoryName,
+    governorate: mapGovernorateToHumus(governorate), // Map to HUMUS format
+    lat,
+    lng: lon,
+    category: mapCategoryToHumus(categoryKey), // Map OSM category to HUMUS ID
     subcategory: categoryKey,
-    facebook,
-    instagram,
-    source: "osm",
-    external_id: externalId,
-    data_quality: "osm",
-    verified: false,
+    facebook,              // Store for internal matching
+    instagram,             // Store for internal matching
+    whatsapp: (raw_data._extra as Record<string, unknown>)?.whatsapp as string | undefined,
+    description,
+
+    // Internal fields for pipeline (not pushed to DB)
+    _status: undefined, // Will be set by classifyBusiness
+    _source: "osm",
+
+    // For the raw_data, store everything else
     raw_data,
   };
 }
@@ -534,10 +714,10 @@ function classifyBusiness(business: Partial<Business>): Partial<Business> & { _s
     hasPhone: business.phone && business.phone.length >= 13,  // +964XXXXXXXXXX = 14 chars
     hasWebsite: business.website && business.website.length > 5,
     hasAddress: business.address && business.address.length > 5,
-    hasCoords: business.latitude && business.longitude,
-    hasSocial: business.facebook || business.instagram,
-    hasEmail: business.email,
-    hasWhatsapp: !!extra.whatsapp,
+    hasCoords: business.lat && business.lng, // Use lat/lng not latitude/longitude
+    hasSocial: business.whatsapp || extra.whatsapp, // Check for WhatsApp or other social
+    hasEmail: (business as any).email,
+    hasWhatsapp: business.whatsapp || !!extra.whatsapp,
     hasHours: !!extra.opening_hours,
   };
 

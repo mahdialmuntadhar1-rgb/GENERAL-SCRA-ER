@@ -13,6 +13,7 @@ export function Review() {
     selectedIds,
     toggleSelection,
     selectAll,
+    selectAllValidated,
     deselectAll,
     removeSelected,
     clearStaged,
@@ -43,7 +44,7 @@ export function Review() {
     setPipelineProgress("Preparing...");
 
     const toPush = stagedBusinesses.filter((b) => {
-      const bid = b.id || b.external_id || b.name || "";
+      const bid = String(b.id || b.external_id || b.name || "");
       return selectedIds.includes(bid);
     });
 
@@ -57,20 +58,20 @@ export function Review() {
     // Convert to RawBusinessInput format
     const rawInputs: RawBusinessInput[] = toPush.map((b) => ({
       business_name: b.name,
-      business_name_en: b.name_en,
+      business_name_en: b.nameAr || b.name, // Use Arabic name if available
       phone: b.phone,
-      email: b.email,
+      email: (b as any).email,
       website: b.website,
       address: b.address,
       city: b.city,
       governorate: b.governorate,
       category: b.category,
       subcategory: b.subcategory,
-      latitude: b.latitude,
-      longitude: b.longitude,
-      facebook: b.facebook,
-      instagram: b.instagram,
-      source: b.source || "osm",
+      latitude: b.lat || (b as any).latitude,  // Handle both lat and latitude
+      longitude: b.lng || (b as any).longitude, // Handle both lng and longitude
+      facebook: (b as any).facebook,
+      instagram: (b as any).instagram,
+      source: (b as any)._source || "osm",
       source_confidence: 50,
       raw_data: b.raw_data as Record<string, unknown> | undefined,
     }));
@@ -109,13 +110,27 @@ export function Review() {
 
     setIsPushing(true);
 
+    // Filter selected to only include validated businesses with phone
     const toPush = stagedBusinesses.filter((b) => {
-      const bid = b.id || b.external_id || b.name || "";
-      return selectedIds.includes(bid);
+      const bid = String(b.id || b.external_id || b.name || "");
+      const isSelected = selectedIds.includes(bid);
+      const isValidated = b._status === "validated";
+      const hasPhone = b.phone && b.phone.trim() !== "";
+      return isSelected && isValidated && hasPhone;
     });
 
+    // Count what was filtered out
+    const selectedBusinesses = stagedBusinesses.filter((b) => {
+      const bid = String(b.id || b.external_id || b.name || "");
+      return selectedIds.includes(bid);
+    });
+    const notValidated = selectedBusinesses.filter((b) => b._status !== "validated").length;
+    const noPhone = selectedBusinesses.filter((b) => !b.phone || b.phone.trim() === "").length;
+
     if (toPush.length === 0) {
-      toast.error("Selection mismatch — clear cache in Settings and re-scrape");
+      toast.error(
+        `No valid businesses to push. ${notValidated} not validated, ${noPhone} missing phone.`
+      );
       setIsPushing(false);
       return;
     }
@@ -123,7 +138,11 @@ export function Review() {
     try {
       const { data, error } = await upsertBusinesses(toPush);
       if (error) throw error;
-      toast.success(`Direct push: ${data?.length || toPush.length} businesses sent`);
+      const pushedCount = data?.length || 0;
+      const skippedCount = selectedIds.length - pushedCount;
+      toast.success(
+        `Direct push complete: ${pushedCount} pushed (${skippedCount} skipped: ${notValidated} not validated, ${noPhone} no phone)`
+      );
       removeSelected();
     } catch (error) {
       console.error("Push failed:", error);
@@ -198,6 +217,13 @@ export function Review() {
             className="px-3 py-1.5 text-sm bg-secondary rounded hover:bg-secondary/80"
           >
             Select All
+          </button>
+          <button
+            onClick={selectAllValidated}
+            className="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+          >
+            <CheckCircle2 className="h-4 w-4 inline mr-1" />
+            Select Validated Only
           </button>
           <button
             onClick={deselectAll}
@@ -293,8 +319,8 @@ export function Review() {
             <BusinessCard
               key={business.external_id || business.id}
               business={business}
-              isSelected={selectedIds.includes(business.id || business.external_id || business.name || "")}
-              onToggle={() => toggleSelection(business.id || business.external_id || business.name || "")}
+              isSelected={selectedIds.includes(String(business.id || business.external_id || business.name || ""))}
+              onToggle={() => toggleSelection(String(business.id || business.external_id || business.name || ""))}
             />
           ))
         )}
@@ -344,6 +370,16 @@ function BusinessCard({
             <span className="px-2 py-0.5 text-xs rounded bg-secondary text-secondary-foreground">
               {business.category}
             </span>
+            {!business.phone && (
+              <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 border border-red-300">
+                No Phone — Will be skipped
+              </span>
+            )}
+            {business._status !== "validated" && (
+              <span className="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700 border border-amber-300">
+                Not Validated — Will be skipped
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">

@@ -125,6 +125,7 @@ interface ReviewState {
   stageBusinesses: (businesses: Business[]) => void;
   toggleSelection: (id: string) => void;
   selectAll: () => void;
+  selectAllValidated: () => void;
   deselectAll: () => void;
   removeSelected: () => void;
   clearStaged: () => void;
@@ -161,7 +162,14 @@ export const useReviewStore = create<ReviewState>()(
 
       selectAll: () =>
         set((state) => ({
-          selectedIds: state.stagedBusinesses.map((b) => b.id || b.external_id || b.name),
+          selectedIds: state.stagedBusinesses.map((b) => String(b.id || b.external_id || b.name)),
+        })),
+
+      selectAllValidated: () =>
+        set((state) => ({
+          selectedIds: state.stagedBusinesses
+            .filter((b) => b._status === "validated")
+            .map((b) => String(b.id || b.external_id || b.name)),
         })),
 
       deselectAll: () =>
@@ -170,7 +178,7 @@ export const useReviewStore = create<ReviewState>()(
       removeSelected: () =>
         set((state) => ({
           stagedBusinesses: state.stagedBusinesses.filter(
-            (b) => !state.selectedIds.includes(b.id || b.external_id || b.name)
+            (b) => !state.selectedIds.includes(String(b.id || b.external_id || b.name))
           ),
           selectedIds: [],
         })),
@@ -185,7 +193,7 @@ export const useReviewStore = create<ReviewState>()(
         const { stagedBusinesses, selectedIds } = get();
         set({
           stagedBusinesses: stagedBusinesses.map((b) =>
-            selectedIds.includes(b.id || b.external_id || b.name) ? { ...b, _status: "validated" } : b
+            selectedIds.includes(String(b.id || b.external_id || b.name)) ? { ...b, _status: "validated" } : b
           ),
         });
       },
@@ -194,7 +202,7 @@ export const useReviewStore = create<ReviewState>()(
         const { stagedBusinesses, selectedIds } = get();
         set({
           stagedBusinesses: stagedBusinesses.map((b) =>
-            selectedIds.includes(b.id || b.external_id || b.name) ? { ...b, _status: "needs_review" } : b
+            selectedIds.includes(String(b.id || b.external_id || b.name)) ? { ...b, _status: "needs_review" } : b
           ),
         });
       },

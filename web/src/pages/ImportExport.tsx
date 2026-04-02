@@ -96,18 +96,42 @@ export function ImportExport() {
   ];
 
   const downloadFile = (content: string, filename: string, type: string) => {
-    // Add UTF-8 BOM for CSV files so Excel reads Arabic/Kurdish correctly
-    const bom = type.includes("csv") ? "\uFEFF" : "";
-    const blob = new Blob([bom + content], { type: `${type};charset=utf-8` });
+    // For CSV: Add UTF-8 BOM + proper encoding for Arabic/Kurdish text
+    // The BOM (\uFEFF) tells Excel this is UTF-8 encoded
+    const isCSV = type.includes("csv");
+    const bom = isCSV ? "\uFEFF" : "";
+    
+    // Use explicit UTF-8 charset for proper Arabic/Kurdish support
+    const mimeType = isCSV ? "text/csv;charset=utf-8" : `${type};charset=utf-8`;
+    
+    const blob = new Blob([bom + content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    
+    // Force download attributes for better encoding handling
+    a.setAttribute("download", filename);
+    a.style.display = "none";
+    
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const toBizArray = (data: Record<string, unknown>[]): Record<string, unknown>[] => data;
+  // Escape CSV values properly - handles Arabic/Kurdish text and special characters
+  const escapeCSV = (value: string): string => {
+    const str = String(value ?? "");
+    // If value contains comma, quote, newline, or Arabic/Kurdish characters, wrap in quotes
+    const needsQuotes = str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r") || /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(str);
+    
+    if (!needsQuotes) return str;
+    
+    // Escape quotes by doubling them: " becomes ""
+    const escaped = str.replace(/"/g, '""');
+    return `"${escaped}"`;
+  };
 
   // Export from LOCAL staged review queue
   const handleExportLocalCSV = () => {
@@ -118,11 +142,8 @@ export function ImportExport() {
     }
     const csvLines = [
       CSV_HEADERS.join(","),
-      ...toBizArray(stagedBusinesses as unknown as Record<string, unknown>[]).map((b) =>
-        CSV_HEADERS.map((h) => {
-          const val = String(b[h] ?? "");
-          return val.includes(",") || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
-        }).join(",")
+      ...(stagedBusinesses as unknown as Record<string, unknown>[]).map((b: Record<string, unknown>) =>
+        CSV_HEADERS.map((h) => escapeCSV(String(b[h] ?? ""))).join(",")
       ),
     ];
     downloadFile(csvLines.join("\n"), `iraq_businesses_local_${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
@@ -153,10 +174,7 @@ export function ImportExport() {
       const csvLines = [
         CSV_HEADERS.join(","),
         ...data.map((b: Record<string, unknown>) =>
-          CSV_HEADERS.map((h) => {
-            const val = String(b[h] ?? "");
-            return val.includes(",") || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
-          }).join(",")
+          CSV_HEADERS.map((h) => escapeCSV(String(b[h] ?? ""))).join(",")
         ),
       ];
 
