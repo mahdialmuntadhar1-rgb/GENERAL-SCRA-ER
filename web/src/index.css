@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 96%;
+    --foreground: 30 10% 15%;
+    --card: 40 30% 98%;
+    --card-foreground: 30 10% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 10% 15%;
+    --primary: 36 60% 42%;
+    --primary-foreground: 40 30% 98%;
+    --secondary: 38 40% 92%;
+    --secondary-foreground: 30 10% 25%;
+    --muted: 38 25% 91%;
+    --muted-foreground: 30 8% 50%;
+    --accent: 36 55% 88%;
+    --accent-foreground: 30 10% 15%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 36 30% 85%;
+    --input: 36 30% 85%;
+    --ring: 36 60% 42%;
+    --radius: 0.625rem;
+    --gold: 36 60% 42%;
+    --gold-light: 38 55% 88%;
+    --sidebar: 30 15% 18%;
+    --sidebar-foreground: 38 35% 85%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .gold-gradient {
+    background: linear-gradient(135deg, hsl(36 60% 42%), hsl(40 50% 52%));
+  }
+  .gold-border {
+    border-color: hsl(36 40% 75%);
+  }
+}
