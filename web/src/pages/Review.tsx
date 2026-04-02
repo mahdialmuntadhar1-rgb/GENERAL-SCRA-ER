@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useReviewStore } from "@/stores";
-import { upsertBusinesses } from "@/lib/supabase";
+import { upsertBusinessesByPhone } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { Business } from "@/lib/supabase";
 import { CheckCircle2, AlertCircle, Trash2, Upload, Zap } from "lucide-react";
@@ -109,21 +109,32 @@ export function Review() {
 
     setIsPushing(true);
 
-    const toPush = stagedBusinesses.filter((b) => {
+    const selectedBusinesses = stagedBusinesses.filter((b) => {
       const bid = b.id || b.external_id || b.name || "";
       return selectedIds.includes(bid);
     });
 
-    if (toPush.length === 0) {
+    if (selectedBusinesses.length === 0) {
       toast.error("Selection mismatch — clear cache in Settings and re-scrape");
       setIsPushing(false);
       return;
     }
 
+    const toPush = selectedBusinesses.filter((b) => !!b.phone?.trim());
+    const skippedWithoutPhone = selectedBusinesses.length - toPush.length;
+
+    if (toPush.length === 0) {
+      toast.error("No selected businesses with phone numbers");
+      setIsPushing(false);
+      return;
+    }
+
     try {
-      const { data, error } = await upsertBusinesses(toPush);
+      const { data, error } = await upsertBusinessesByPhone(toPush);
       if (error) throw error;
-      toast.success(`Direct push: ${data?.length || toPush.length} businesses sent`);
+      toast.success(
+        `Direct push: ${data?.length || toPush.length} businesses sent${skippedWithoutPhone > 0 ? ` (${skippedWithoutPhone} skipped: no phone)` : ""}`
+      );
       removeSelected();
     } catch (error) {
       console.error("Push failed:", error);
@@ -227,7 +238,7 @@ export function Review() {
             className="px-4 py-2 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 disabled:opacity-50 flex items-center gap-2"
           >
             <Upload className="h-4 w-4" />
-            Direct Push
+            Direct Push (Phone)
           </button>
           <button
             onClick={handleSmartPush}

@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { normalizePhone } from "@/services/normalize";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "placeholder";
@@ -152,6 +153,42 @@ export async function upsertBusinesses(businesses: Partial<Business>[]) {
     console.error("Supabase upsert error:", error);
   } else {
     console.log(`Successfully pushed ${data?.length} records to Supabase`);
+  }
+
+  return { data, error };
+}
+
+export async function upsertBusinessesByPhone(businesses: Partial<Business>[]) {
+  const cleaned = businesses
+    .map(({ _status, id, ...rest }) => {
+      const normalizedPhone = normalizePhone(rest.phone);
+      if (!normalizedPhone) return null;
+
+      return {
+        ...rest,
+        phone: normalizedPhone,
+        normalized_phone: normalizedPhone,
+        fsq_id:
+          rest.fsq_id ||
+          rest.external_id ||
+          `phone_${normalizedPhone.replace(/\D/g, "")}`,
+      };
+    })
+    .filter((b): b is NonNullable<typeof b> => !!b);
+
+  if (cleaned.length === 0) {
+    return { data: [], error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("iraqi_businesses")
+    .upsert(cleaned, { onConflict: "normalized_phone" })
+    .select();
+
+  if (error) {
+    console.error("Supabase phone upsert error:", error);
+  } else {
+    console.log(`Successfully pushed ${data?.length} phone-matched records to Supabase`);
   }
 
   return { data, error };
