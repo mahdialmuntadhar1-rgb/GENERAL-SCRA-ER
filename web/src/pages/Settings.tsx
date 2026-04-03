@@ -184,7 +184,7 @@ export function Settings() {
           Unified Iraq Business Directory Scraper v1.0
         </p>
         <p className="text-sm text-muted-foreground">
-          Combining the best of GENERAL-SCRA-ER and 18-AGENTS projects
+          GENERAL-SCRA-ER is the only active scraper dashboard/frontend repository
         </p>
       </div>
     </div>
