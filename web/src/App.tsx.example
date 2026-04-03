@@ -1,0 +1,40 @@
+/**
+ * Example App.tsx with HomePage integrated
+ *
+ * Copy this structure into your actual App.tsx file to get started
+ */
+
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import HomePage from '@/pages/HomePage';
+import Scraper from '@/pages/Scraper';
+import Review from '@/pages/Review';
+import { useAuthStore } from '@/stores/authStore'; // Optional: if you have auth
+
+function App() {
+  // Optional: check if user is authenticated
+  // const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  return (
+    <Router>
+      <Routes>
+        {/* Main Homepage - Version 1 Design */}
+        <Route path="/" element={<HomePage />} />
+
+        {/* Existing Scraper Pages */}
+        <Route path="/scraper" element={<Scraper />} />
+        <Route path="/review" element={<Review />} />
+
+        {/* Optional: Add More Routes */}
+        {/* <Route path="/business/:id" element={<BusinessProfile />} /> */}
+        {/* <Route path="/my-posts" element={<MyPosts />} /> */}
+        {/* <Route path="/settings" element={<Settings />} /> */}
+        {/* <Route path="/admin" element={<AdminDashboard />} /> */}
+
+        {/* Catch-all 404 route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;

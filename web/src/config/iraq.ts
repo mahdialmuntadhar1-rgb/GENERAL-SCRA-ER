@@ -170,218 +170,222 @@ export interface City {
 }
 
 // Business Categories with OSM tags
-export const CATEGORIES: Record<string, Category> = {
-  restaurant: {
-    name: "Restaurant",
-    nameAr: "مطعم",
+export type CategoryKey =
+  | "dining_cuisine"
+  | "cafe_coffee"
+  | "shopping_retail"
+  | "entertainment_events"
+  | "accommodation_stays"
+  | "culture_heritage"
+  | "business_services"
+  | "health_wellness"
+  | "doctors"
+  | "hospitals"
+  | "clinics"
+  | "transport_mobility"
+  | "public_essential"
+  | "lawyers"
+  | "education";
+
+export const CATEGORIES: Record<CategoryKey, Category> = {
+  dining_cuisine: {
+    name: "Dining & Cuisine",
+    nameAr: "المطاعم والمأكولات",
     osmTags: [
       "amenity=restaurant",
       "amenity=fast_food",
+      "amenity=food_court",
+      "amenity=bbq",
       "cuisine=iraqi",
       "cuisine=kebab",
       "cuisine=mediterranean",
     ],
-    subcategories: ["iraqi_cuisine", "fast_food", "seafood", "fine_dining"],
+    subcategories: ["fine_dining", "casual", "fast_food", "traditional", "international"],
   },
-  cafe: {
-    name: "Cafe",
-    nameAr: "مقهى",
-    osmTags: ["amenity=cafe", "amenity=coffee_shop", "shop=bakery"],
-    subcategories: ["coffee_shop", "tea_house", "bakery_cafe"],
-  },
-  hotel: {
-    name: "Hotel",
-    nameAr: "فندق",
-    osmTags: ["tourism=hotel", "tourism=motel", "tourism=guest_house"],
-    subcategories: ["luxury", "budget", "guest_house"],
-  },
-  shop: {
-    name: "Shop/Retail",
-    nameAr: "متجر",
+  cafe_coffee: {
+    name: "Cafe & Coffee",
+    nameAr: "المقاهي والقهوة",
     osmTags: [
-      "shop=supermarket",
-      "shop=convenience",
+      "amenity=cafe",
+      "amenity=coffee_shop",
+      "amenity=tea_house",
+      "shop=coffee",
+      "shop=bakery",
+    ],
+    subcategories: ["coffee", "tea", "dessert", "breakfast", "workspace"],
+  },
+  shopping_retail: {
+    name: "Shopping & Retail",
+    nameAr: "التسوق والتجزئة",
+    osmTags: [
       "shop=clothes",
       "shop=electronics",
-      "shop=mobile_phone",
+      "shop=shoes",
+      "shop=bags",
+      "shop=jewelry",
+      "shop=mall",
+      "shop=department_store",
+      "amenity=marketplace",
     ],
-    subcategories: ["supermarket", "electronics", "clothing"],
+    subcategories: ["fashion", "electronics", "home", "gifts", "specialty"],
   },
-  bank: {
-    name: "Bank/Finance",
-    nameAr: "بنك",
-    osmTags: [
-      "amenity=bank",
-      "amenity=atm",
-      "amenity=money_transfer",
-    ],
-    subcategories: ["bank", "atm", "exchange"],
-  },
-  education: {
-    name: "Education",
-    nameAr: "تعليم",
-    osmTags: [
-      "amenity=school",
-      "amenity=university",
-      "amenity=college",
-    ],
-    subcategories: ["school", "university", "college"],
-  },
-  entertainment: {
-    name: "Entertainment",
-    nameAr: "ترفيه",
+  entertainment_events: {
+    name: "Entertainment & Events",
+    nameAr: "الترفيه والفعاليات",
     osmTags: [
       "amenity=cinema",
       "amenity=theatre",
-      "leisure=sports_centre",
-    ],
-    subcategories: ["cinema", "theater", "sports"],
-  },
-  tourism: {
-    name: "Tourism/Attraction",
-    nameAr: "سياحة",
-    osmTags: [
-      "tourism=museum",
-      "tourism=attraction",
-      "historic=monument",
-    ],
-    subcategories: ["museum", "monument", "historic_site"],
-  },
-  doctors: {
-    name: "Doctor/Physician",
-    nameAr: "طبيب",
-    osmTags: [
-      "amenity=doctors",
-      "healthcare=doctor",
-      "healthcare=clinic",
-      "healthcare:speciality=general",
-      "healthcare:speciality=dentist",
-      "healthcare:speciality=cardiology",
-      "healthcare:speciality=pediatrics",
-      "healthcare:speciality=dermatology",
-    ],
-    subcategories: ["general", "dentist", "cardiology", "pediatrics", "dermatology", "orthopedics"],
-  },
-  lawyers: {
-    name: "Lawyer/Legal Office",
-    nameAr: "محامي",
-    osmTags: [
-      "office=lawyer",
-      "office=notary",
-      "office=legal",
-      "amenity=courthouse",
-    ],
-    subcategories: ["lawyer", "notary", "legal_consultant"],
-  },
-  hospitals: {
-    name: "Hospital/Medical Center",
-    nameAr: "مستشفى",
-    osmTags: [
-      "amenity=hospital",
-      "healthcare=hospital",
-      "healthcare=centre",
-      "amenity=clinic",
-      "healthcare=clinic",
-    ],
-    subcategories: ["general", "private", "public", "specialized"],
-  },
-  clinics: {
-    name: "Clinic/Polyclinic",
-    nameAr: "عيادة",
-    osmTags: [
-      "amenity=clinic",
-      "healthcare=clinic",
-      "healthcare=centre",
-      "healthcare=polyclinic",
-    ],
-    subcategories: ["general", "dental", "dermatology", "pediatric", "womens_health"],
-  },
-  realestate: {
-    name: "Real Estate/Property",
-    nameAr: "عقارات",
-    osmTags: [
-      "office=estate_agent",
-      "shop=real_estate",
-      "office=property_management",
-    ],
-    subcategories: ["sales", "rentals", "commercial", "residential"],
-  },
-  events: {
-    name: "Event Venue",
-    nameAr: "قاعة مناسبات",
-    osmTags: [
+      "amenity=nightclub",
       "amenity=events_venue",
       "amenity=community_centre",
       "amenity=conference_centre",
       "amenity=exhibition_center",
-      "tourism=hotel",
     ],
-    subcategories: ["wedding_hall", "conference", "exhibition", "party_venue"],
+    subcategories: ["cinema", "theatre", "events", "nightlife", "gaming"],
   },
-  others: {
-    name: "Other/General",
-    nameAr: "أخرى",
+  accommodation_stays: {
+    name: "Accommodation & Stays",
+    nameAr: "الإقامة والفنادق",
     osmTags: [
-      "shop=general",
-      "shop=convenience",
-      "amenity=place_of_worship",
-      "office=*",
-      "shop=*",
+      "tourism=hotel",
+      "tourism=hostel",
+      "tourism=guest_house",
+      "tourism=motel",
+      "tourism=apartment",
     ],
-    subcategories: ["general_store", "convenience", "religious", "office"],
+    subcategories: ["hotel", "hostel", "apartment", "resort", "budget"],
   },
-  pharmacy: {
-    name: "Pharmacy/Drugstore",
-    nameAr: "صيدلية",
+  culture_heritage: {
+    name: "Culture & Heritage",
+    nameAr: "الثقافة والتراث",
+    osmTags: [
+      "historic=*",
+      "tourism=museum",
+      "tourism=gallery",
+      "amenity=library",
+      "amenity=place_of_worship",
+      "historic=monument",
+    ],
+    subcategories: ["museum", "gallery", "library", "historic", "religious"],
+  },
+  business_services: {
+    name: "Business & Services",
+    nameAr: "الأعمال والخدمات",
+    osmTags: [
+      "office=*",
+      "amenity=bank",
+      "amenity=atm",
+      "amenity=post_office",
+      "amenity=courier",
+      "shop=copyshop",
+    ],
+    subcategories: ["banking", "office", "logistics", "printing", "consulting"],
+  },
+  health_wellness: {
+    name: "Health & Wellness",
+    nameAr: "الصحة والعافية",
     osmTags: [
       "amenity=pharmacy",
       "shop=pharmacy",
       "healthcare=pharmacy",
-    ],
-    subcategories: ["24h", "retail", "hospital"],
-  },
-  gym: {
-    name: "Gym/Fitness",
-    nameAr: "نادي رياضي",
-    osmTags: [
       "leisure=fitness_centre",
       "leisure=sports_centre",
       "amenity=gym",
-    ],
-    subcategories: ["fitness", "crossfit", "yoga", "pool"],
-  },
-  beauty: {
-    name: "Beauty/Salon",
-    nameAr: "صالون تجميل",
-    osmTags: [
       "shop=beauty",
       "shop=hairdresser",
       "shop=cosmetics",
       "amenity=spa",
     ],
-    subcategories: ["hair", "nails", "spa", "barbershop"],
+    subcategories: ["pharmacy", "fitness", "wellness", "beauty", "spa"],
   },
-  supermarket: {
-    name: "Supermarket/Grocery",
-    nameAr: "سوبرماركت",
+  doctors: {
+    name: "Doctors",
+    nameAr: "الأطباء",
     osmTags: [
-      "shop=supermarket",
-      "shop=grocery",
-      "shop=convenience",
-      "shop=food",
+      "amenity=doctors",
+      "healthcare=doctor",
+      "healthcare=clinic",
+      "healthcare=general_practice",
+      "healthcare=specialist",
     ],
-    subcategories: ["supermarket", "grocery", "organic", "24h"],
+    subcategories: ["general", "specialist", "dentist", "pediatric", "dermatology"],
   },
-  furniture: {
-    name: "Furniture/Home",
-    nameAr: "أثاث",
+  hospitals: {
+    name: "Hospitals",
+    nameAr: "المستشفيات",
     osmTags: [
-      "shop=furniture",
-      "shop=home_goods",
-      "shop=interior_decoration",
-      "shop=household",
+      "amenity=hospital",
+      "healthcare=hospital",
+      "building=hospital",
+      "emergency=yes",
     ],
-    subcategories: ["furniture", "decor", "kitchen", "bedding"],
+    subcategories: ["general", "specialized", "emergency", "private", "public"],
+  },
+  clinics: {
+    name: "Clinics",
+    nameAr: "العيادات",
+    osmTags: [
+      "amenity=clinic",
+      "healthcare=clinic",
+      "healthcare=center",
+      "healthcare=laboratory",
+      "healthcare=diagnostic",
+    ],
+    subcategories: ["medical", "dental", "eye_care", "diagnostic", "therapy"],
+  },
+  transport_mobility: {
+    name: "Transport & Mobility",
+    nameAr: "النقل والتنقل",
+    osmTags: [
+      "amenity=fuel",
+      "shop=car",
+      "shop=car_repair",
+      "amenity=car_rental",
+      "amenity=taxi",
+      "amenity=bus_station",
+      "amenity=charging_station",
+      "aeroway=aerodrome",
+    ],
+    subcategories: ["fuel", "rental", "repair", "parking", "ev_charging"],
+  },
+  public_essential: {
+    name: "Public & Essential",
+    nameAr: "الخدمات العامة والأساسية",
+    osmTags: [
+      "amenity=police",
+      "amenity=fire_station",
+      "amenity=hospital",
+      "amenity=clinic",
+      "amenity=pharmacy",
+      "amenity=post_office",
+      "office=government",
+      "amenity=public_building",
+    ],
+    subcategories: ["safety", "healthcare", "government", "utilities", "emergency"],
+  },
+  lawyers: {
+    name: "Lawyers",
+    nameAr: "المحامون",
+    osmTags: [
+      "office=lawyer",
+      "office=legal",
+      "amenity=courthouse",
+      "office=notary",
+    ],
+    subcategories: ["legal", "notary", "consultation", "corporate", "personal"],
+  },
+  education: {
+    name: "Education",
+    nameAr: "التعليم",
+    osmTags: [
+      "amenity=school",
+      "amenity=university",
+      "amenity=college",
+      "amenity=kindergarten",
+      "amenity=language_school",
+      "amenity=driving_school",
+    ],
+    subcategories: ["school", "university", "training", "language", "kindergarten"],
   },
 };
 

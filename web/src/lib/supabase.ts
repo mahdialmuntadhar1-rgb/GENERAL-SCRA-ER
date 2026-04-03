@@ -62,7 +62,11 @@ export type Business = {
   raw_data?: Record<string, unknown>; // Raw OSM/API data
   source?: string;         // Data source (osm|google_places|etc)
 
-  // Normalization pipeline fields (internal)
+  // UI fields
+  image?: string;          // Primary image URL for UI display
+  images?: string[];       // Array of image URLs
+  createdAt?: string;
+  updatedAt?: string;
   normalized_name?: string;
   normalized_phone?: string;
   normalized_website?: string;

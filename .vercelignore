@@ -1,0 +1,19 @@
+# Ignore Python files and folders to prevent Vercel from detecting as Python project
+desktop/
+scraper/
+models/
+utils/
+db/
+gui/
+*.py
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log

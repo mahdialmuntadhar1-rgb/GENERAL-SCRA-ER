@@ -1,0 +1,22 @@
+# Unified Iraq Business Directory Scraper - Robots.txt
+User-agent: *
+Allow: /
+
+# Disallow admin/internal routes
+Disallow: /admin/
+Disallow: /api/
+Disallow: /scraper/
+Disallow: /import-export/
+Disallow: /review/
+Disallow: /staging/
+Disallow: /logs/
+Disallow: /settings/
+
+# Allow public routes
+Allow: /
+
+# Sitemap (when added)
+# Sitemap: https://yourdomain.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1
