@@ -133,6 +133,15 @@ All pure-Python — no C/Rust compiler required:
 - `openpyxl` — Excel file reading
 - `phonenumbers` — Iraqi phone number validation
 
+## Vercel Deployment Note
+
+This repository contains a Python desktop application at the root and a separate Vite frontend in `web/`.
+
+- Deploy to Vercel from **`web/` only**.
+- Do **not** deploy the Python desktop app (`main.py`, `gui/`, `scraper/`) to Vercel.
+
+See `web/DEPLOYMENT.md` for exact Vercel settings.
+
 ## License
 
 MIT
