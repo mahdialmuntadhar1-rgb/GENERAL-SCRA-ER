@@ -32,12 +32,12 @@ Deploy **only** `web/` to Vercel.
 
 ### Environment variables for frontend
 Set in Vercel project settings:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SCRAPER_SUPABASE_URL`
+- `VITE_SCRAPER_SUPABASE_ANON_KEY`
 
 Optional server-side API keys (only if using `web/api/*` endpoints):
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SCRAPER_SUPABASE_URL`
+- `SCRAPER_SUPABASE_SERVICE_ROLE_KEY`
 - `ANTHROPIC_API_KEY`
 - `GOOGLE_PLACES_API_KEY`
 
@@ -60,6 +60,13 @@ Use this inside `web/vercel.json`:
 ```
 
 > Note: For frontend-only deployment, this file is enough. Python desktop code is intentionally not deployed.
+
+---
+
+## Ownership guardrails
+- `GENERAL-SCRA-ER/web` is internal scraper tooling only.
+- `belive` is public app only.
+- `18-AGENTS` and `SKYHIGH` are legacy/reference only and not active connection targets.
 
 ---
 
@@ -91,7 +98,7 @@ Use this inside `web/vercel.json`:
 1. In Vercel, import this GitHub repo.
 2. In project setup, set **Root Directory** to `web`.
 3. Confirm preset/build output values above.
-4. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+4. Add `VITE_SCRAPER_SUPABASE_URL` and `VITE_SCRAPER_SUPABASE_ANON_KEY`.
 5. Deploy.
 6. If routes 404 on refresh, verify `web/vercel.json` rewrites are present.
 

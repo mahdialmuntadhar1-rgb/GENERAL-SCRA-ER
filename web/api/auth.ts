@@ -5,8 +5,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
 // Use ANON key for auth operations, NOT service role key
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';  // Use anon key for auth
+const supabaseUrl = process.env.SCRAPER_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SCRAPER_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';  // Use anon key for auth
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -138,7 +138,7 @@ export async function verifyAuth(req: VercelRequest): Promise<{ user: any | null
   try {
     const token = authHeader.replace('Bearer ', '');
     // Use service role only for verifying sessions on protected routes
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const serviceKey = process.env.SCRAPER_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     const adminClient = createClient(supabaseUrl, serviceKey);
     
     const { data: { user }, error } = await adminClient.auth.getUser(token);

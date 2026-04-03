@@ -21,13 +21,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SUPABASE_URL: str = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY: str = os.environ.get("SUPABASE_KEY", "")
+SUPABASE_URL: str = os.environ.get("SCRAPER_SUPABASE_URL", os.environ.get("SUPABASE_URL", ""))
+SUPABASE_KEY: str = os.environ.get("SCRAPER_SUPABASE_KEY", os.environ.get("SUPABASE_KEY", ""))
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print(
-        "[WARN] SUPABASE_URL and SUPABASE_KEY not set in .env\n"
-        "       Copy .env.example → .env and fill in your values.\n"
+        "[WARN] SCRAPER_SUPABASE_URL and SCRAPER_SUPABASE_KEY not set in .env\n"
+        "       Copy .env.example → .env and fill in scraper DB values.\n"
+        "       Legacy SUPABASE_URL/SUPABASE_KEY are still supported as fallback.\n"
         "       The app will launch but Supabase operations will fail."
     )
 

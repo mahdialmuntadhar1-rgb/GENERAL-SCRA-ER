@@ -2,6 +2,28 @@
 
 A Python desktop application for **scraping, validating, and managing** Iraqi university data with **Supabase** as the backend.
 
+## Repository Ownership (Permanent)
+
+### Active repos (source-of-truth map)
+1. **belive** → public-facing application only (reads public/production tables only).
+2. **GENERAL-SCRA-ER** (this repo) → only active internal scraper/staging/review/AI-clean/export app.
+
+### Legacy/reference-only repos
+- `18-AGENTS`
+- `SKYHIGH`
+
+These legacy repos are **not** active scraper frontends and must not be used as DB connection targets unless explicitly requested for code borrowing only.
+
+### DB boundary for this repo
+- Allowed: scraper/internal pipeline tables (for import, staging, review, cleaning) and controlled publish into production destination tables.
+- Not allowed: using belive public-app runtime DB configuration as scraper config.
+
+### Source of truth
+- Scraper frontend/dashboard ownership: **GENERAL-SCRA-ER only**.
+- Public app ownership: **belive only**.
+- Connection defaults in this repo use explicit `SCRAPER_*` env vars to reduce accidental cross-repo DB mixing.
+
+
 ## Features
 
 | Feature | Description |
@@ -45,8 +67,8 @@ cp .env.example .env
 Edit `.env` and fill in:
 
 ```
-SUPABASE_URL=https://<your-project-ref>.supabase.co
-SUPABASE_KEY=<your_anon_or_service_role_key>
+SCRAPER_SUPABASE_URL=https://<your-scraper-project-ref>.supabase.co
+SCRAPER_SUPABASE_KEY=<your_scraper_key>
 ```
 
 ### 4. Run the application

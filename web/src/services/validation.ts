@@ -1,5 +1,5 @@
 // Iraqi phone number normalization
-// Ported from 18-AGENTS/utils_phone.py
+// Legacy note: initial logic originated in a retired internal repo and is now owned here.
 
 export const MOBILE_PREFIXES = ["077", "078", "079", "075", "076", "074", "073"];
 
