@@ -1,7 +1,7 @@
 """
 Scraping & validation pipeline.
 
-Orchestrates:  scrape → normalise → validate → classify (validated / needs_review)
+Orchestrates:  scrape → normalise → validate → classify (validated / needs_review) → immediate persist
 
 Designed to run in a background thread.  Checks a `threading.Event` (stop_event)
 between every major step so the GUI can cancel cleanly.
@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 import time
 import threading
+import asyncio
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
@@ -19,6 +20,7 @@ import requests
 
 from utils.validators import validate_phone, validate_email, validate_url
 from utils.text_utils import clean_text, safe_string, safe_float, safe_int
+from utils.supabase_client import save_business_immediately
 
 
 # ---------------------------------------------------------------------------
@@ -178,6 +180,7 @@ class PipelineResult:
     errors: list[str] = field(default_factory=list)
     total_scraped: int = 0
     finished: bool = False
+    persisted_count: int = 0  # New: track successful persistence
 
 
 def run_pipeline(
@@ -186,18 +189,20 @@ def run_pipeline(
     radius: int = 30000,
     stop_event: threading.Event,
     on_progress: Callable[[str], None] | None = None,
+    immediate_persist: bool = True,  # New: enable/disable immediate persistence
 ) -> PipelineResult:
     """
-    Full scraping + validation pipeline.
+    Full scraping + validation pipeline with immediate persistence.
 
     Args:
         governorates: list of {"name", "lat", "lon"} dicts. Defaults to all 18.
         radius: search radius in metres.
         stop_event: checked between steps — set() to abort cleanly.
         on_progress: optional callback(message) for UI log updates.
+        immediate_persist: whether to save validated records immediately to Supabase.
 
     Returns:
-        PipelineResult with validated / needs_review lists.
+        PipelineResult with validated / needs_review lists and persistence count.
     """
     result = PipelineResult()
     govs = governorates or IRAQ_GOVERNORATES
@@ -246,19 +251,41 @@ def run_pipeline(
 
             if rec["_status"] == "validated":
                 result.validated.append(rec)
+                
+                # Immediate persistence for validated records
+                if immediate_persist:
+                    try:
+                        # Run async persistence in sync context
+                        loop = None
+                        try:
+                            loop = asyncio.get_event_loop()
+                        except RuntimeError:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                        
+                        success = loop.run_until_complete(save_business_immediately(rec))
+                        if success:
+                            result.persisted_count += 1
+                            log(f"[PERSIST] {rec.get('name', '?')} saved to database")
+                        else:
+                            log(f"[PERSIST-ERROR] Failed to save {rec.get('name', '?')}")
+                    except Exception as e:
+                        log(f"[PERSIST-ERROR] {rec.get('name', '?')}: {e}")
             else:
                 result.needs_review.append(rec)
 
         # Rate-limit between governorates
         if not stop_event.is_set():
-            log(f"[DONE]  {gov_name}  (validated: {len(result.validated)}, review: {len(result.needs_review)})")
+            persist_msg = f", persisted: {result.persisted_count}" if immediate_persist else ""
+            log(f"[DONE]  {gov_name}  (validated: {len(result.validated)}, review: {len(result.needs_review)}{persist_msg})")
             time.sleep(2)
 
     result.finished = not stop_event.is_set()
+    persist_summary = f" | Persisted {result.persisted_count}" if immediate_persist else ""
     log(
         f"[FINISHED] Scraped {result.total_scraped} | "
         f"Validated {len(result.validated)} | "
         f"Needs review {len(result.needs_review)} | "
-        f"Errors {len(result.errors)}"
+        f"Errors {len(result.errors)}{persist_summary}"
     )
     return result

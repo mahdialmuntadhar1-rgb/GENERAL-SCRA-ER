@@ -21,13 +21,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SUPABASE_URL: str = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY: str = os.environ.get("SUPABASE_KEY", "")
+SUPABASE_URL: str = os.environ.get("SCRAPER_SUPABASE_URL") or os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY: str = os.environ.get("SCRAPER_SUPABASE_KEY") or os.environ.get("SUPABASE_KEY", "")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print(
-        "[WARN] SUPABASE_URL and SUPABASE_KEY not set in .env\n"
-        "       Copy .env.example → .env and fill in your values.\n"
+        "[WARN] SCRAPER_SUPABASE_URL and SCRAPER_SUPABASE_KEY not set in .env\n"
+        "       Copy .env.example → .env and fill in your Supabase values.\n"
+        "       WARNING: Do NOT use credentials from the public 'belive' database.\n"
         "       The app will launch but Supabase operations will fail."
     )
 

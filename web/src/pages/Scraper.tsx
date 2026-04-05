@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useScraperStore, useReviewStore, type ScraperTask } from "@/stores";
-import { IRAQ_GOVERNORATES, CATEGORIES, type CategoryKey } from "@/config/iraq";
+import { IRAQ_GOVERNORATES, CATEGORIES, type CategoryKey, MAX_GOVERNORATES, MAX_CATEGORIES, MAX_TASKS, THROTTLE_DELAY, MULTI_SELECT_RADIUS } from "@/config/iraq";
 import { normalizePhone } from "@/services/validation";
 import { mapCategoryToHumus, mapGovernorateToHumus } from "@/lib/supabase";
 import { validateIraqiPhone } from "@/services/phone-validator";
 import { batchFindInstagram } from "@/services/instagram-scraper";
 import { batchFindFacebook } from "@/services/facebook-scraper";
+import { queueBusinessForPersistence, flushPersistenceQueue, getPersistenceQueueStats } from "@/services/persistence";
+import { ScraperChatbot } from "@/components/ScraperChatbot";
 import { toast } from "sonner";
 import type { Business } from "@/lib/supabase";
 import {
@@ -14,7 +16,7 @@ import {
   Building2, GraduationCap,
   Film, Plane, Stethoscope, Scale, Hospital,
   Check, AlertTriangle, Trash2, List,
-  CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp,
+  CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, MessageSquare,
 } from "lucide-react";
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -86,13 +88,32 @@ export function Scraper() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetCode, setResetCode] = useState("");
   const [dataCounts, setDataCounts] = useState<Record<string, number> | null>(null);
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
 
-  const isProcessingRef = useRef(false);
+  const handleChatbotConfig = (config: { selectedGovernorates: string[]; selectedCategories: string[]; maxResults: number; dataQuality: string }) => {
+    setSelectedGovernorates(config.selectedGovernorates);
+    setSelectedCategories(config.selectedCategories);
+    toast.success('Chatbot configuration applied!');
+  };
 
   const generateJobId = () => `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   const buildTaskQueue = useCallback((): Array<{ governorate: string; categoryKey: string; categoryName: string }> => {
     const tasks: Array<{ governorate: string; categoryKey: string; categoryName: string }> = [];
+    
+    // Validate limits before building queue
+    const totalTasks = selectedGovernorates.length * selectedCategories.length;
+    if (totalTasks > MAX_TASKS) {
+      setShowWarning(true);
+      return [];
+    }
+    
+    // Adjust radius for multi-select
+    const effectiveRadius = selectedGovernorates.length > 1 || selectedCategories.length > 3 
+      ? Math.min(radius, MULTI_SELECT_RADIUS) 
+      : radius;
+    
     for (const govName of selectedGovernorates) {
       for (const catKey of selectedCategories) {
         const category = CATEGORIES[catKey as CategoryKey];
@@ -102,7 +123,7 @@ export function Scraper() {
       }
     }
     return tasks;
-  }, [selectedGovernorates, selectedCategories]);
+  }, [selectedGovernorates, selectedCategories, radius]);
 
   const processTask = async (task: ScraperTask): Promise<boolean> => {
     addLog(`[START] ${task.governorate} → ${task.categoryName}`);
@@ -117,7 +138,12 @@ export function Scraper() {
 
       updateProgress({ currentGovernorate: task.governorate, currentCategory: task.categoryName });
 
-      const businesses = await scrapeOverpass(gov.lat, gov.lon, category.osmTags, radius, task.governorate, task.categoryKey, task.categoryName);
+      // Use effective radius based on selection size
+      const effectiveRadius = selectedGovernorates.length > 1 || selectedCategories.length > 3 
+        ? Math.min(radius, MULTI_SELECT_RADIUS) 
+        : radius;
+
+      const businesses = await scrapeOverpass(gov.lat, gov.lon, category.osmTags, effectiveRadius, task.governorate, task.categoryKey, task.categoryName);
 
       let enrichedBusinesses: Partial<Business>[] = [];
       if (businesses.length > 0) {
@@ -132,6 +158,8 @@ export function Scraper() {
         const classified = classifyBusiness(business);
         if (classified._status === "validated") {
           addResult("validated", classified as Business);
+          // Queue for immediate persistence
+          queueBusinessForPersistence(classified as Business);
           validatedCount++;
         } else {
           addResult("needsReview", classified as Business);
@@ -182,11 +210,19 @@ export function Scraper() {
       });
 
       await processTask(nextTask);
-      await delay(3000);
+      // Apply throttling delay between tasks
+      await delay(THROTTLE_DELAY);
     }
 
     isProcessingRef.current = false;
     stopScraping();
+    
+    // Flush any remaining persistence queue
+    try {
+      await flushPersistenceQueue();
+    } catch (error) {
+      console.error("Error flushing persistence queue:", error);
+    }
   };
 
   const runScraper = useCallback(async () => {
@@ -270,6 +306,39 @@ export function Scraper() {
           Reset Data
         </button>
       </div>
+
+      {showWarning && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-lg p-6 max-w-md w-full m-4">
+            <div className="flex items-center gap-2 text-amber-600 mb-4">
+              <AlertTriangle className="h-6 w-6" />
+              <h2 className="text-xl font-bold">Selection Limit Exceeded</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              You've selected {selectedGovernorates.length} governorates and {selectedCategories.length} categories, 
+              which creates {selectedGovernorates.length * selectedCategories.length} tasks. This exceeds the recommended limit of {MAX_TASKS} tasks.
+            </p>
+            <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded p-3 mb-4">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Recommendations:</strong><br/>
+                • Select maximum {MAX_GOVERNORATES} governorates<br/>
+                • Select maximum {MAX_CATEGORIES} categories<br/>
+                • Radius will be automatically reduced to {MULTI_SELECT_RADIUS}m for multi-select
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowWarning(false)} className="px-4 py-2 text-muted-foreground hover:text-foreground">Cancel</button>
+              <button onClick={() => {
+                // Auto-reduce selections to fit limits
+                setSelectedGovernorates(selectedGovernorates.slice(0, MAX_GOVERNORATES));
+                setSelectedCategories(selectedCategories.slice(0, MAX_CATEGORIES));
+                setShowWarning(false);
+                toast.success("Selections adjusted to fit limits");
+              }} className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">Auto-Adjust</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showResetModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

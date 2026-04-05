@@ -259,12 +259,14 @@ export const CATEGORIES: Record<CategoryKey, Category> = {
     name: "Culture & Heritage",
     nameAr: "الثقافة والتراث",
     osmTags: [
-      "historic=*",
+      "historic=monument",
+      "historic=memorial",
+      "historic=archaeological_site",
       "tourism=museum",
       "tourism=gallery",
       "amenity=library",
       "amenity=place_of_worship",
-      "historic=monument",
+      "tourism=artwork",
     ],
     subcategories: ["museum", "gallery", "library", "historic", "religious"],
   },
@@ -272,7 +274,13 @@ export const CATEGORIES: Record<CategoryKey, Category> = {
     name: "Business & Services",
     nameAr: "الأعمال والخدمات",
     osmTags: [
-      "office=*",
+      "office=company",
+      "office=administrative",
+      "office=lawyer",
+      "office=accountant",
+      "office=estate_agent",
+      "office=insurance",
+      "office=financial",
       "amenity=bank",
       "amenity=atm",
       "amenity=post_office",
@@ -404,3 +412,10 @@ export const OVERPASS_SERVERS = [
 export const RATE_LIMIT_DELAY = 1000; // ms between requests
 export const DEFAULT_SEARCH_RADIUS = 10000; // 10km
 export const BATCH_SIZE = 50;
+
+// Configuration limits to prevent crashes
+export const MAX_GOVERNORATES = 5;
+export const MAX_CATEGORIES = 8;
+export const MAX_TASKS = 20; // Maximum governorates * categories combinations
+export const THROTTLE_DELAY = 2000; // ms between API calls
+export const MULTI_SELECT_RADIUS = 5000; // Reduced radius for multi-select
