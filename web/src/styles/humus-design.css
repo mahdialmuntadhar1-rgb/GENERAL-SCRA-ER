@@ -1,0 +1,273 @@
+/* HUMUS Version 1: Social-First Grid Design System */
+
+/* Color Palette */
+:root {
+  /* Primary Colors */
+  --humus-coral: #FF6B35;
+  --humus-deep-blue: #004E89;
+  --humus-cyan: #1AC8ED;
+  --humus-off-white: #F7F7F7;
+  --humus-dark: #1A1A1A;
+
+  /* Secondary Colors */
+  --humus-coral-light: #ff8555;
+  --humus-blue-dark: #003d6b;
+  --humus-cyan-dark: #00a8c9;
+
+  /* Neutral Colors */
+  --humus-gray-50: #f9fafb;
+  --humus-gray-100: #f3f4f6;
+  --humus-gray-200: #e5e7eb;
+  --humus-gray-300: #d1d5db;
+  --humus-gray-400: #9ca3af;
+  --humus-gray-500: #6b7280;
+  --humus-gray-600: #4b5563;
+  --humus-gray-700: #374151;
+  --humus-gray-800: #1f2937;
+  --humus-gray-900: #111827;
+}
+
+/* Typography */
+.poppins-bold {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+}
+
+.poppins-semibold {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+}
+
+.inter-regular {
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+}
+
+.inter-light {
+  font-family: "Inter", sans-serif;
+  font-weight: 300;
+}
+
+/* Global Styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background-color: var(--humus-off-white);
+  color: var(--humus-dark);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--humus-off-white);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--humus-deep-blue);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--humus-coral);
+}
+
+/* Hide scrollbar for specific elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Utility Classes */
+.text-humus-coral {
+  color: var(--humus-coral);
+}
+
+.text-humus-blue {
+  color: var(--humus-deep-blue);
+}
+
+.text-humus-cyan {
+  color: var(--humus-cyan);
+}
+
+.bg-humus-coral {
+  background-color: var(--humus-coral);
+}
+
+.bg-humus-blue {
+  background-color: var(--humus-deep-blue);
+}
+
+.bg-humus-cyan {
+  background-color: var(--humus-cyan);
+}
+
+.border-humus-coral {
+  border-color: var(--humus-coral);
+}
+
+.border-humus-blue {
+  border-color: var(--humus-deep-blue);
+}
+
+.border-humus-cyan {
+  border-color: var(--humus-cyan);
+}
+
+/* Button Styles */
+.btn-primary {
+  background-color: var(--humus-coral);
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #e55a24;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.btn-secondary {
+  background-color: var(--humus-deep-blue);
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: #003d6b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 78, 137, 0.3);
+}
+
+.btn-accent {
+  background-color: var(--humus-cyan);
+  color: var(--humus-deep-blue);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-accent:hover {
+  background-color: #00a8c9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 200, 237, 0.3);
+}
+
+/* Card Styles */
+.card-humus {
+  background-color: white;
+  border: 2px solid var(--humus-deep-blue);
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.card-humus:hover {
+  border-color: var(--humus-coral);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+}
+
+/* Input Styles */
+.input-humus {
+  border: 2px solid var(--humus-deep-blue);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.input-humus:focus {
+  outline: none;
+  border-color: var(--humus-cyan);
+  box-shadow: 0 0 0 3px rgba(26, 200, 237, 0.1);
+}
+
+/* Badge Styles */
+.badge-trending {
+  background-color: var(--humus-coral);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.badge-featured {
+  background-color: var(--humus-cyan);
+  color: var(--humus-deep-blue);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Responsive Grid */
+@media (max-width: 768px) {
+  .container-humus {
+    padding: 1rem;
+  }
+}
+
+/* Animation Classes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideInLeft 0.4s ease-in-out;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background-color: white;
+  }
+
+  .no-print {
+    display: none;
+  }
+}

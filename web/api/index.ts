@@ -7,6 +7,7 @@ import { handlePipelineRequest } from './pipeline';
 import { handleStatsRequest } from './stats';
 import { handleHealthRequest } from './health';
 import { handleAuthRequest } from './auth';
+import { handleResetRequest } from './reset';
 
 // CORS headers for all API responses
 const corsHeaders = {
@@ -29,6 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // Route to appropriate handler
     if (pathname.startsWith('/api/scraper')) {
+      // Check if it's a reset endpoint
+      if (pathname.startsWith('/api/scraper/reset') || pathname.startsWith('/api/scraper/counts') || pathname === '/api/scraper/reset-code') {
+        return await handleResetRequest(req, res);
+      }
       return await handleScraperRequest(req, res);
     }
     

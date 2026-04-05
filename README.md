@@ -36,10 +36,13 @@ These legacy repos are **not** active scraper frontends and must not be used as 
 | **Push to Supabase** | Insert/upsert approved records via REST API |
 | **Browse** | Search & view universities already stored in Supabase |
 | **Seed Data** | One-click seeding of all 18 Iraqi governorates |
+| **Persistence Queue** | Immediate persistence for validated businesses with queue management |
+| **Chatbot Interface** | Conversational configuration for scraper settings |
 
 ## Prerequisites
 
 - **Python 3.11+** (tested on 3.15 alpha — no compiled deps needed)
+- **Node.js 18+** (for web frontend)
 - A **Supabase** project ([dashboard.supabase.com](https://supabase.com/dashboard))
 
 ## Setup
@@ -49,7 +52,14 @@ These legacy repos are **not** active scraper frontends and must not be used as 
 ```bash
 git clone https://github.com/mahdialmuntadhar1-rgb/GENERAL-SCRA-ER.git
 cd GENERAL-SCRA-ER
+
+# Python dependencies
 pip install -r requirements.txt
+
+# Web frontend dependencies
+cd web
+npm install
+cd ..
 ```
 
 ### 2. Create Supabase tables
@@ -71,11 +81,24 @@ SCRAPER_SUPABASE_URL=https://<your-scraper-project-ref>.supabase.co
 SCRAPER_SUPABASE_KEY=<your_scraper_key>
 ```
 
-### 4. Run the application
+**⚠️ IMPORTANT**: Use your own private Supabase project. Do NOT use credentials from the public "belive" database.
 
+**Legacy Variables Supported**: For backward compatibility, `SUPABASE_URL` and `SUPABASE_KEY` are still supported.
+
+### 4. Run the applications
+
+#### Python Desktop App
 ```bash
 python main.py
 ```
+
+#### Web Frontend
+```bash
+cd web
+npm run dev
+```
+
+The web interface will be available at `http://localhost:3000`.
 
 ## Project Structure
 
@@ -86,6 +109,16 @@ GENERAL-SCRA-ER/
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
+├── web/                      # React web frontend
+│   ├── src/
+│   │   ├── pages/
+│   │   │   └── Scraper.tsx   # Main scraper interface
+│   │   ├── components/
+│   │   │   └── ScraperChatbot.tsx # Chatbot interface
+│   │   └── services/
+│   │       └── persistence.ts # Queue management
+│   ├── package.json
+│   └── vite.config.ts
 ├── db/
 │   ├── client.py             # Lightweight REST client (requests-based)
 │   └── crud.py               # CRUD for all 7 tables
@@ -119,36 +152,131 @@ GENERAL-SCRA-ER/
 | `posts` | News / announcements |
 | `opportunities` | Scholarships, jobs, events |
 
+## New Features
+
+### Persistence Queue
+- **Immediate Persistence**: Validated businesses are automatically queued for database storage during scraping
+- **Queue Management**: Efficient batching and throttling of database operations
+- **Flush Operation**: Ensures all queued items are persisted when scraping completes
+- **Error Handling**: Robust error recovery and retry mechanisms
+
+### Chatbot Interface
+- **Natural Language Configuration**: Use conversational commands to set scraper parameters
+- **Intelligent Parsing**: Automatically extracts governorates, categories, and limits from user input
+- **Interactive Suggestions**: Get recommendations for optimal scraper settings
+- **Real-time Feedback**: See configuration changes applied instantly
+
 ## How It Works
 
-### Scraper flow (Scraper tab)
-1. Click **▶ Start Scraping** — the pipeline runs in a background thread.
-2. For each governorate, Overpass API is queried for universities/colleges.
-3. Each record is normalised, validated (phone, email, coords), and classified:
-   - **validated** — score ≥ 2, has a name + useful contact info.
-   - **needs_review** — low score or missing key fields.
-4. Click **■ Stop** at any time to cancel cleanly.
-5. Results can be **staged** for review or **pushed directly** to Supabase.
+### Scraper flow (Web Interface)
+1. **Configure Settings**: Use the chatbot or manual controls to set governorates, categories, and limits
+2. **Start Scraping**: Click **▶ Start** - the pipeline runs with persistence queue management
+3. **Real-time Persistence**: Validated businesses are immediately queued for database storage
+4. **Monitor Progress**: Watch real-time updates and queue statistics
+5. **Automatic Flush**: All remaining items are persisted when scraping completes
 
-### Import flow (Import tab)
-1. Open a CSV/Excel/JSON file → columns are auto-mapped to schema fields.
-2. **Validate & Stage** — phone numbers parsed with `phonenumbers`, emails regex-checked, duplicates flagged.
-3. Staged records appear in the **Review & Approve** tab.
+### Chatbot Configuration
+1. **Open Chat**: Click the chatbot button in the scraper interface
+2. **Natural Commands**: Type requests like "show me restaurants in Baghdad" or "find 20 cafes with high quality data"
+3. **Auto-Apply**: The chatbot parses your request and applies the settings
+4. **Verify**: Check the applied configuration in the main interface
 
-### Review & push
-1. Inspect staged rows, select/deselect, remove bad data, check duplicates.
-2. **Push to Supabase** — records are upserted. Governorates and cities are auto-created if they don't exist. Contacts and social links are inserted alongside each university.
+## Performance & Rate Limits
 
-## Safe Defaults
+### Overpass API Usage
+The scraper uses the public Overpass API for OpenStreetMap data:
 
-- Fields that are missing or unclear are stored as `NULL` — never guessed.
-- `data_quality` defaults to `"unverified"`.
-- `verified` defaults to `false`.
+- **No API Key Required**: Free to use but subject to fair usage policies
+- **Rate Limits**: Approximately 1-2 requests per second recommended
+- **Request Timeout**: 60 seconds built-in, with 65-second client timeout
+- **Concurrent Requests**: Not recommended - sequential processing is safer
+
+### Recommended Settings
+
+#### Development/Testing
+```bash
+SCRAPER_REQUEST_DELAY=3      # Conservative delay
+SCRAPER_THREAD_COUNT=1      # Single thread for debugging
+```
+
+#### Production Use
+```bash
+SCRAPER_REQUEST_DELAY=2      # Balanced speed/respect
+SCRAPER_THREAD_COUNT=2-4    # Moderate concurrency
+SCRAPER_BATCH_SIZE=50-100    # Efficient database operations
+```
+
+#### Large Scale Scraping
+```bash
+SCRAPER_REQUEST_DELAY=1      # Faster but monitor for throttling
+SCRAPER_THREAD_COUNT=4-8    # Higher concurrency if network allows
+SCRAPER_BATCH_SIZE=200       # Larger batches for efficiency
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**"Overpass timeout"**
+- Increase timeout in `pipeline.py` (line 68)
+- Reduce search radius
+- Check network connectivity
+
+**"Rate limited"**
+- Increase `SCRAPER_REQUEST_DELAY`
+- Reduce `SCRAPER_THREAD_COUNT`
+- Wait and retry later
+
+**"Database connection failed"**
+- Verify `SCRAPER_SUPABASE_URL` and `SCRAPER_SUPABASE_KEY`
+- Check Supabase project status
+- Ensure tables exist (run `supabase_schema.sql`)
+
+**"No data returned"**
+- Try different search parameters
+- Check if OSM has data for that region
+- Verify Overpass API is accessible
+
+### Debug Mode
+
+Enable verbose logging by setting:
+```bash
+SCRAPER_DEBUG=true
+```
+
+This provides detailed request/response information for troubleshooting.
+
+## Deployment Notes
+
+### Web Frontend Deployment
+The React web frontend can be deployed to:
+- **Vercel** (recommended)
+- **Netlify**
+- **Any static hosting platform**
+
+#### Vercel Deployment
+```bash
+cd web
+npm run build
+npx vercel --prod
+```
+
+### Desktop Application Only
+The Python desktop app should NOT be deployed on:
+- Vercel (serverless functions)
+- Heroku (dynos)
+- Any serverless platform
+
+### Production Considerations
+- Use environment variables for all configuration
+- Implement proper logging for production monitoring
+- Consider automated backups of Supabase data
+- Monitor Overpass API usage and respect rate limits
 
 ## Dependencies
 
+### Python Dependencies
 All pure-Python — no C/Rust compiler required:
-
 - `requests` — HTTP client for Supabase REST API
 - `python-dotenv` — loads `.env`
 - `customtkinter` — modern desktop GUI
