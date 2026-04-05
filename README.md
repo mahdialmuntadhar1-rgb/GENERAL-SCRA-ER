@@ -2,6 +2,28 @@
 
 A Python desktop application for **scraping, validating, and managing** Iraqi university data with **Supabase** as the backend.
 
+## Repository Ownership (Permanent)
+
+### Active repos (source-of-truth map)
+1. **belive** → public-facing application only (reads public/production tables only).
+2. **GENERAL-SCRA-ER** (this repo) → only active internal scraper/staging/review/AI-clean/export app.
+
+### Legacy/reference-only repos
+- `18-AGENTS`
+- `SKYHIGH`
+
+These legacy repos are **not** active scraper frontends and must not be used as DB connection targets unless explicitly requested for code borrowing only.
+
+### DB boundary for this repo
+- Allowed: scraper/internal pipeline tables (for import, staging, review, cleaning) and controlled publish into production destination tables.
+- Not allowed: using belive public-app runtime DB configuration as scraper config.
+
+### Source of truth
+- Scraper frontend/dashboard ownership: **GENERAL-SCRA-ER only**.
+- Public app ownership: **belive only**.
+- Connection defaults in this repo use explicit `SCRAPER_*` env vars to reduce accidental cross-repo DB mixing.
+
+
 ## Features
 
 | Feature | Description |
@@ -54,19 +76,9 @@ cp .env.example .env
 
 Edit `.env` and fill in:
 
-```bash
-# Supabase Configuration - Required
-SCRAPER_SUPABASE_URL=https://your-project-id.supabase.co
-SCRAPER_SUPABASE_KEY=your-anon-or-service-role-key-here
-
-# Optional: Performance tuning
-SCRAPER_THREAD_COUNT=4          # Concurrent threads (default: 4)
-SCRAPER_BATCH_SIZE=100           # Batch insert size (default: 100)
-SCRAPER_REQUEST_DELAY=2         # Seconds between requests (default: 2)
-
-# Web frontend configuration
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+```
+SCRAPER_SUPABASE_URL=https://<your-scraper-project-ref>.supabase.co
+SCRAPER_SUPABASE_KEY=<your_scraper_key>
 ```
 
 **⚠️ IMPORTANT**: Use your own private Supabase project. Do NOT use credentials from the public "belive" database.
@@ -271,12 +283,14 @@ All pure-Python — no C/Rust compiler required:
 - `openpyxl` — Excel file reading
 - `phonenumbers` — Iraqi phone number validation
 
-### Web Frontend Dependencies
-- `React` — UI framework
-- `TypeScript` — Type safety
-- `TailwindCSS` — Styling
-- `Vite` — Build tool
-- `Lucide React` — Icons
+## Vercel Deployment Note
+
+This repository contains a Python desktop application at the root and a separate Vite frontend in `web/`.
+
+- Deploy to Vercel from **`web/` only**.
+- Do **not** deploy the Python desktop app (`main.py`, `gui/`, `scraper/`) to Vercel.
+
+See `web/DEPLOYMENT.md` for exact Vercel settings.
 
 ## License
 

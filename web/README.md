@@ -2,6 +2,18 @@
 
 A React-based web dashboard for scraping, validating, and managing Iraqi business data with Supabase as the backend.
 
+## Ownership & database boundary
+
+- This `web/` app belongs to **GENERAL-SCRA-ER**, the only active scraper dashboard frontend.
+- It connects to scraper/internal tables for staging/review/cleaning flows and then publishes validated data to production destination tables.
+- It is **not** the public-facing `belive` app and must not use `belive` runtime DB configuration.
+- `18-AGENTS` and `SKYHIGH` are legacy/reference-only repos.
+
+### Source of truth
+- Scraper UI/frontend source of truth: `GENERAL-SCRA-ER/web`
+- Public app source of truth: `belive`
+
+
 ## Features
 
 - **Dashboard**: Overview of collected data with charts and statistics
@@ -36,8 +48,8 @@ cp .env.example .env.local
 
 3. Add your Supabase credentials to `.env.local`:
 ```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SCRAPER_SUPABASE_URL=https://your-scraper-project.supabase.co
+VITE_SCRAPER_SUPABASE_ANON_KEY=your-scraper-anon-key
 ```
 
 4. Run the Supabase schema in your Supabase SQL Editor:
@@ -50,6 +62,10 @@ npm run dev
 ```
 
 ## Data Pipeline
+
+### Table ownership
+- Internal scraper tables: `businesses_import_raw`, `businesses_staging`, `businesses_review_queue`, `scrape_batches`
+- Production destination table: `iraqi_businesses` (published validated records consumed by public app)
 
 1. **Scrape**: Select governorates and categories, click "Start Scraping"
 2. **Validate**: Each business is scored and classified:
